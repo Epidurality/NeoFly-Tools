@@ -4,7 +4,10 @@ Small collection of tools for use with the NeoFly career mode for MSFS 2020.
 ## Instructions:
 
 ### Installation:
-Place all files into a single folder, anywhere you'd like. If you want to run the "NeoFly Tools.ahk" script directly, you must have AutoHotkey (https://www.autohotkey.com/download/). Alternatively, simply run the "NeoFly Tools.exe". 
+1. Place all files into a single folder, anywhere you'd like. 
+2. If you want to run the "NeoFly Tools.ahk" script directly, you must have AutoHotkey (https://www.autohotkey.com/download/). 
+	2. Alternatively, simply run the "NeoFly Tools.exe". The .exe still needs SQLite3.dll to be in the same folder. If using the .exe, you can delete the .ahk files.
+3. If you want to change some of the default parameters (DB Path, etc), you can do so near the top of the NeoFly Tools.ahk file (doesn't affect the .exe).
 ###### Note: I do not test the .exe beyond simply making sure it runs, though I don't forsee there being issues with using the .exe as this is a relatively simple set of scripts.
 
 ### Connecting to the Database:
@@ -35,7 +38,7 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
 3. Select the mission type and rank. Put whatever text you'd like for Request (appears in the mission browser in NeoFly), and the ToolTip Text (which as far as I can tell, appears when you hover over the mission on the map).
 4. CHANGE THE EXPIRATION DATE AND/OR TIME. By default, the Expiration is set to "now" and will lead to the mission not being shown, as it will be expired.
 5. Press the "Find Lat/Lon" button. This will automatically find the coordinates of the Departure and Arrival ICAOs, if they can be found in the database. Custom text for Arrival will not auto-populate, and you must enter the correctly formatted coordinates for the arrival in this case.
-6. Press the "Calculate Distance" button. This will use the Vincenty method (thank you to 'ymg' from the AHK forums, https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/) to determine the distance, in nautical miles, based on your coordinates.
+6. Press the "Calculate Distance" button. This will determine the distance, in nautical miles, based on your coordinates.
 7. Set the reward and XP.
 8. Click the "Preview" button. This will generate the misson you've detailed and display the results, exactly as they would be entered into the database.
 9. Confirm that the preview looks correct, then press "Commit to Database". 
@@ -46,11 +49,11 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
 ### Close/Exit:
 1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
 
-## KNOWN ISSUES:
+## Known Issues:
 - Don't use non-alphanumeric characters if you can help it. Particularly double-quotes, `', `%, etc as the SQL queries are not being sanitized.
 		Especially on the Mission Generator this will cause the SQL query to fail.
 
-## PLANNED UPDATES:
+## Planned Updates:
 - Mission Generator
   - Multiple mission generation
   - Random and pseudo-random generation
@@ -64,3 +67,9 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
   - Improve UI layout/looks (low priority)
   - Sanitize SQL inputs (not likely to happen)
   - Port this over to using a real language instead of AutoHotkey (not likely to happen)
+  - INI file
+
+## Credits:
+1. "AHK-Just-Me" for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
+2. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
+3. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
