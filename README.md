@@ -51,7 +51,7 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
 - Goods Optimizer
   - Show actual (based on plane and mission) maximum profit instead of theoretical in the Missons lists
 - Aircraft Market
-  - Use the Vincenty model for distance estimation instead of the garbage estimation used currently
+  - Use the Vincenty model for Aircraft Market distance estimation instead of the garbage SQL-math-only estimation used currently
 - General
   - Improve UI layout/looks (low priority)
   - Sanitize SQL inputs (not likely to happen)
