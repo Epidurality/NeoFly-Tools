@@ -15,6 +15,8 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 2. In the Goods Optmizer tab, double-click a Plane from your Hangar. Refresh the Hangar if any changes are made to your Planes in Neofly: this tool does not automatically update any fields. Any changed information must be refreshed to be shown correctly.
 3. Once a Plane is chosen, the "Viable Missions with Markets" and "Trade Missions Available" will populate. If no missions appear, make sure that you have searched for missions and the market at your departure ICAO in Neofly, and have searched markets for arrival ICAOs.
 4. Double-clicking a mission (or trade mission) will auto-populate the Mission Weight and Arrival ICAO. It will also show you the available goods which the Departure is selling and the Arrival is buying (Suitable Market Goods). In the Optimum Trades view, quantities will be shown which will maximize the profit you could make for the given Plane and Mission/Arrival combination.
+5. The information near the top (Fuel and Payload) should match the values you'll need to use inside of MSFS.
+###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. 
 
 ### Aircraft Market:
 This tool searches the AircraftMarket table for available Planes for sale. It displays the prices and (approximate) distance to the airport selling the plane. It also estimates your ONE-WAY travel cost of paying to bring your Pilot to the airport selling the plane.
@@ -33,7 +35,7 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
 7. Set the reward and XP.
 8. Click the "Preview" button. This will generate the misson you've detailed and display the results, exactly as they would be entered into the database.
 9. Confirm that the preview looks correct, then press "Commit to Database". 
-  NOTE: Changing something AFTER the preview is generated WILL NOT be reflected in the preview until you re-preview. It WILL however be committed when you press the button, regardless of what's in the preview.
+###### NOTE: Changing something AFTER the preview is generated WILL NOT be reflected in the preview until you re-preview. It WILL however be committed when you press the button, regardless of what's in the preview.
 10. Search your ICAO for the new mission in NeoFly, and try it out!
 
 ## KNOWN ISSUES:
