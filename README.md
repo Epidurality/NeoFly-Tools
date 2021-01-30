@@ -1,32 +1,28 @@
 # neofly_tools
 Small collection of tools for use with the NeoFly career mode for MSFS 2020.
     
-#INSTRUCTIONS:
+## Instructions:
 
-##Connecting to the Database:
-
+### Connecting to the Database:
 1. Go to the Sttings tab
 2. Ensure that the Database Path is the correct path to your NeoFly "common.db" SQLite database. Normally located in C:\ProgramData\Neofly
 3. Press "Connect".
 4. Under "Pilot Loaded", you should see the ID and Callsign of your most recently active pilot.
 
-##Goods Optimizer:
-
+### Goods Optimizer:
 This tool is to help optimize your trading in NeoFly. It analyzes your Plane's weight, fuel, and payload, and determines which goods are able to be traded between your Departure (where the Plane currently is) and your Destination (as determined by the destination of your chosen mission).
 1. Connect to your NeoFly database via the Settings page. Ensure that a valid Pilot is found.
 2. In the Goods Optmizer tab, double-click a Plane from your Hangar. Refresh the Hangar if any changes are made to your Planes in Neofly: this tool does not automatically update any fields. Any changed information must be refreshed to be shown correctly.
 3. Once a Plane is chosen, the "Viable Missions with Markets" and "Trade Missions Available" will populate. If no missions appear, make sure that you have searched for missions and the market at your departure ICAO in Neofly, and have searched markets for arrival ICAOs.
 4. Double-clicking a mission (or trade mission) will auto-populate the Mission Weight and Arrival ICAO. It will also show you the available goods which the Departure is selling and the Arrival is buying (Suitable Market Goods). In the Optimum Trades view, quantities will be shown which will maximize the profit you could make for the given Plane and Mission/Arrival combination.
 
-##Aircraft Market:
-
+### Aircraft Market:
 This tool searches the AircraftMarket table for available Planes for sale. It displays the prices and (approximate) distance to the airport selling the plane. It also estimates your ONE-WAY travel cost of paying to bring your Pilot to the airport selling the plane.
 1. Ensure your database is connected.
 2. Use the text field to enter the name (or part of a name) of the aircraft. The name must match (or match part of) the name of the plane as entered in the NeoFly database. For example, "Cessna" or "CJ4".
 3. Press search. Results will be shown, with the Distance based on your Pilot's current position.
 
-##Mission Generator:
-
+### Mission Generator:
 This lets you generate custom missions for use in NeoFly. WARNING: All previous tools were designed to open the database read-only. This means they will not harm or modify your database. The mission generator opens the database with WRITE priviliges. Putting incorrect information here, or simply bad programming of the tool (equally if not more likely), means that your game may crash when attempting to load the mission you've added. I suggest noting down the ID (last field), so that you can find and delete it in the database if necessary.
 1. Backup your database. You can use the built-in button, or back it up yourself. I recommend both.
 2. Choose your Departure ICAO (must be a valid ICAO), and your Arrival (which can be an ICAO for normal missions, or any text you'd like for Tourist/Emergency/Drop Zone missions).
@@ -40,13 +36,11 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
   NOTE: Changing something AFTER the preview is generated WILL NOT be reflected in the preview until you re-preview. It WILL however be committed when you press the button, regardless of what's in the preview.
 10. Search your ICAO for the new mission in NeoFly, and try it out!
 
-#KNOWN ISSUES:
-
+## KNOWN ISSUES:
 - Don't use non-alphanumeric characters if you can help it. Particularly double-quotes, `', `%, etc as the SQL queries are not being sanitized.
 		Especially on the Mission Generator this will cause the SQL query to fail.
 
-#PLANNED UPDATES:
-
+## PLANNED UPDATES:
 - Mission Generator
   - Multiple mission generation
   - Random and pseudo-random generation
