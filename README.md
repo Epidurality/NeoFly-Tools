@@ -59,13 +59,12 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
   - Add Airline and Humanitarian missions. They currently crash the NeoFly client and I don't know why.
 - Goods Optimizer
   - Show actual (based on plane and mission) maximum profit instead of theoretical in the Missons lists
-- Aircraft Market
-  - Use the Vincenty model for Aircraft Market distance estimation instead of the garbage SQL-math-only estimation used currently
 - General
   - Improve UI layout/looks (low priority)
   - Sanitize SQL inputs (not likely to happen)
   - Port this over to using a real language instead of AutoHotkey (not likely to happen)
   - INI file
+  - Better formatting for $ values, thousands separators.
 
 ## Credits:
 1. "AHK-Just-Me" for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
