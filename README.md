@@ -1,4 +1,4 @@
-# neofly_tools
+# NeoFly Tools
 Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
     
 ## Instructions:
