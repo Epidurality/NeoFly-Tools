@@ -3,6 +3,10 @@ Small collection of tools for use with the NeoFly career mode for MSFS 2020.
     
 ## Instructions:
 
+### Installation:
+Place all files into a single folder, anywhere you'd like. If you want to run the "NeoFly Tools.ahk" script directly, you must have AutoHotkey (https://www.autohotkey.com/download/). Alternatively, simply run the "NeoFly Tools.exe". 
+###### Note: I do not test the .exe beyond simply making sure it runs, though I don't forsee there being issues with using the .exe as this is a relatively simple set of scripts.
+
 ### Connecting to the Database:
 1. Go to the Sttings tab
 2. Ensure that the Database Path is the correct path to your NeoFly "common.db" SQLite database. Normally located in C:\ProgramData\Neofly
@@ -35,8 +39,12 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
 7. Set the reward and XP.
 8. Click the "Preview" button. This will generate the misson you've detailed and display the results, exactly as they would be entered into the database.
 9. Confirm that the preview looks correct, then press "Commit to Database". 
+10. The Commit button will re-open the database in Write mode, attempt to insert the new mission(s), then close the database and re-open in Read-Only. This *should* make sure that NeoFly and this script don't conflict for writes to the database, but it's not guaranteed.
 ###### NOTE: Changing something AFTER the preview is generated WILL NOT be reflected in the preview until you re-preview. It WILL however be committed when you press the button, regardless of what's in the preview.
 10. Search your ICAO for the new mission in NeoFly, and try it out!
+
+### Close/Exit:
+1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
 
 ## KNOWN ISSUES:
 - Don't use non-alphanumeric characters if you can help it. Particularly double-quotes, `', `%, etc as the SQL queries are not being sanitized.
