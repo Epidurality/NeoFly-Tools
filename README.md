@@ -39,7 +39,6 @@ This lets you generate custom missions for use in NeoFly.
 1. Fill in the Type, Rank, Pax, Cargo, Request and Tooltip texts, reward, and experience. Put whatever text you'd like for Request (appears in the mission browser in NeoFly), and the ToolTip Text (which as far as I can tell, appears when you hover over the mission on the map).
 1. Press the "Find Lat/Lon" button. This will automatically find the coordinates of the Departure and Arrival ICAOs, if they can be found in the database. Custom text for Arrival will not auto-populate, and you must enter the correctly formatted coordinates for the arrival in this case.
 1. Press the "Calculate Distance" button. This will determine the distance, in nautical miles, based on your coordinates.
-1. Set the reward and XP.
 1. Click the "Preview" button. This will generate the misson(s) you've detailed and display the results, exactly as they would be entered into the database.
 1. Confirm that the preview looks correct.
 1. MAKE SURE YOU BACKED UP THAT DATABASE!
