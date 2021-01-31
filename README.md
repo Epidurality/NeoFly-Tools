@@ -34,17 +34,16 @@ This lets you generate custom missions for use in NeoFly.
 ###### WARNING: All previous tools were designed to open the database read-only. This means they will not harm or modify your database. The mission generator opens the database with WRITE priviliges. Putting incorrect information here, or simply bad programming of the tool (equally if not more likely), means that your game may crash when attempting to load the mission you've added. I suggest noting down the ID (last field), so that you can find and delete it in the database if necessary. 
 ###### Backup your database. You can use the built-in button, or back it up yourself. I recommend both.
 1. Go to the mission generator tab.
-2. Choose your Departure ICAO (must be a valid ICAO), and your Arrival (which can be an ICAO for normal missions, or any text you'd like for Tourist/Emergency/Drop Zone missions).
-3. Select the mission type and rank. Put whatever text you'd like for Request (appears in the mission browser in NeoFly), and the ToolTip Text (which as far as I can tell, appears when you hover over the mission on the map).
-4. CHANGE THE EXPIRATION DATE AND/OR TIME. By default, the Expiration is set to "now" and will lead to the mission not being shown, as it will be expired.
-5. Press the "Find Lat/Lon" button. This will automatically find the coordinates of the Departure and Arrival ICAOs, if they can be found in the database. Custom text for Arrival will not auto-populate, and you must enter the correctly formatted coordinates for the arrival in this case.
-6. Press the "Calculate Distance" button. This will determine the distance, in nautical miles, based on your coordinates.
-7. Set the reward and XP.
-8. Click the "Preview" button. This will generate the misson you've detailed and display the results, exactly as they would be entered into the database.
-9. Confirm that the preview looks correct, then press "Commit to Database". 
-10. The Commit button will re-open the database in Write mode, attempt to insert the new mission(s), then close the database and re-open in Read-Only. This *should* make sure that NeoFly and this script don't conflict for writes to the database, but it's not guaranteed.
+1. Choose your Departure ICAO (must be a valid ICAO), and your Arrival (which can be an ICAO for normal missions, or any text you'd like for Tourist/Drop Zone missions).
+1. Fill in the Type, Rank, Pax, Cargo, Request and Tooltip texts, reward, and experience. Put whatever text you'd like for Request (appears in the mission browser in NeoFly), and the ToolTip Text (which as far as I can tell, appears when you hover over the mission on the map).
+1. Press the "Find Lat/Lon" button. This will automatically find the coordinates of the Departure and Arrival ICAOs, if they can be found in the database. Custom text for Arrival will not auto-populate, and you must enter the correctly formatted coordinates for the arrival in this case.
+1. Press the "Calculate Distance" button. This will determine the distance, in nautical miles, based on your coordinates.
+1. Set the reward and XP.
+1. Click the "Preview" button. This will generate the misson(s) you've detailed and display the results, exactly as they would be entered into the database.
+1. Confirm that the preview looks correct, then press "Commit to Database". 
+1. The Commit button will re-open the database in Write mode, attempt to insert the new mission(s), then close the database and re-open in Read-Only. This *should* make sure that NeoFly and this script don't conflict for writes to the database, but it's not guaranteed.
 ###### NOTE: Changing something AFTER the preview is generated WILL NOT be reflected in the preview until you re-preview. It WILL however be committed when you press the button, regardless of what's in the preview.
-10. Search your ICAO for the new mission in NeoFly, and try it out!
+1. Search your ICAO for the new mission in NeoFly, and try it out!
 
 ### Close/Exit:
 1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
