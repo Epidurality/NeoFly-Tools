@@ -53,6 +53,9 @@ This lets you generate custom missions for use in NeoFly.
 - Goods Optimizer->Mission view sometimes shows missions where there is no trades available.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
+## New Issues:
+Please use the GitHub "Issues" feature to raise any bugs or problems you've come across.
+
 ## Planned Updates:
 - Mission Generator
   - Add Airline and Humanitarian missions. They currently crash the NeoFly client and I don't know why.
@@ -60,6 +63,9 @@ This lets you generate custom missions for use in NeoFly.
   - Sanitize SQL inputs (not likely to happen)
   - INI file. Low priority since the ahk scripts make this unneccessary, but they would be necessary for the .exe to have changed defaults.
   - Better formatting for $ values, thousands separators.
+
+## Feature Requests:
+Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
 
 ## Credits:
 1. 'AHK-Just-Me' for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
