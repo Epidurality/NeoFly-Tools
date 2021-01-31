@@ -4,7 +4,7 @@ Small collection of tools for use with the NeoFly career mode addon for MSFS 202
 ## Instructions:
 
 ### Installation:
-1. Place all files into a single folder, anywhere you'd like. 
+1. Place all source files into a single folder, anywhere you'd like. OR download the binary, and place in a folder alongside the sqlite3.dll
 1. If you want to run the "NeoFly Tools.ahk" script directly, you must have AutoHotkey (https://www.autohotkey.com/download/). Alternatively, simply run the "NeoFly Tools.exe". The .exe still needs SQLite3.dll to be in the same folder. If using the .exe, you can delete the .ahk files.
 1. If you want to change some of the default parameters (DB Path, etc), you can do so near the top of the NeoFly Tools.ahk file (doesn't affect the .exe).
 ###### Note: I do not test the .exe beyond simply making sure it runs, though I don't forsee there being issues with using the .exe as this is a relatively simple set of scripts.
