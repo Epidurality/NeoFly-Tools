@@ -18,8 +18,8 @@ Small collection of tools for use with the NeoFly career mode addon for MSFS 202
 ### Goods Optimizer:
 This tool is to help optimize your trading in NeoFly. It analyzes your Plane's weight, fuel, and payload, and determines which goods are able to be traded between your Departure (where the Plane currently is) and your Destination (as determined by the destination of your chosen mission).
 1. In the Goods Optmizer tab, double-click a Plane from your Hangar. Refresh the Hangar if any changes are made to your Planes in Neofly: this tool does not automatically update any fields. Any changed information must be refreshed to be shown correctly.
-2. Once a Plane is chosen, the "Viable Missions with Markets" and "Trade Missions Available" will populate. If no missions appear, make sure that you have searched for missions and the market at your departure ICAO in Neofly, and have searched markets for arrival ICAOs.
-3. Double-clicking a mission (or trade mission) will auto-populate the Mission Weight and Arrival ICAO. It will also show you the available goods which the Departure is selling and the Arrival is buying (Suitable Market Goods). In the Optimum Trades view, quantities will be shown which will maximize the profit you could make for the given Plane and Mission/Arrival combination.
+2. Once a Plane is chosen, you'll see a list of NeoFly missions and a list of Trade/Transit missions. If no missions appear, make sure that you have searched for missions and the market at your departure ICAO in Neofly, and have searched markets for arrival ICAOs. Markets have a refresh interval; even if you've previously searched a market, it's possible that you need to refresh the market (search it again in NeoFly) to display it in the tool.
+3. Double-clicking a mission (or trade mission) will auto-populate the Mission Weight and Arrival ICAO. It will also show you the available goods which the Departure is selling and the Arrival is buying in the Optimum Trades view. Quantities will be shown which will maximize the profit you could make for the given Plane and Mission/Arrival combination.
 4. The information near the top (Fuel and Payload) should match the values you'll need to use inside of MSFS.
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. 
 
@@ -31,8 +31,8 @@ This tool searches the AircraftMarket table for available Planes for sale. It di
 
 ### Mission Generator:
 This lets you generate custom missions for use in NeoFly. WARNING: All previous tools were designed to open the database read-only. This means they will not harm or modify your database. The mission generator opens the database with WRITE priviliges. Putting incorrect information here, or simply bad programming of the tool (equally if not more likely), means that your game may crash when attempting to load the mission you've added. I suggest noting down the ID (last field), so that you can find and delete it in the database if necessary.
-1. Go to the mission generator tab.
 ###### Backup your database. You can use the built-in button, or back it up yourself. I recommend both.
+1. Go to the mission generator tab.
 2. Choose your Departure ICAO (must be a valid ICAO), and your Arrival (which can be an ICAO for normal missions, or any text you'd like for Tourist/Emergency/Drop Zone missions).
 3. Select the mission type and rank. Put whatever text you'd like for Request (appears in the mission browser in NeoFly), and the ToolTip Text (which as far as I can tell, appears when you hover over the mission on the map).
 4. CHANGE THE EXPIRATION DATE AND/OR TIME. By default, the Expiration is set to "now" and will lead to the mission not being shown, as it will be expired.
@@ -57,16 +57,13 @@ This lets you generate custom missions for use in NeoFly. WARNING: All previous 
   - Random and pseudo-random generation
   - Double-click a single previewed mission to commit to database
   - Add Airline and Humanitarian missions. They currently crash the NeoFly client and I don't know why.
-- Goods Optimizer
-  - Show actual (based on plane and mission) maximum profit instead of theoretical in the Missons lists
 - General
   - Improve UI layout/looks (low priority)
   - Sanitize SQL inputs (not likely to happen)
-  - Port this over to using a real language instead of AutoHotkey (not likely to happen)
   - INI file
   - Better formatting for $ values, thousands separators.
 
 ## Credits:
-1. "AHK-Just-Me" for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
+1. 'AHK-Just-Me' for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
 2. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
 3. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
