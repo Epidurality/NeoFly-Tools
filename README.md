@@ -50,7 +50,8 @@ This lets you generate custom missions for use in NeoFly.
 1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
 
 ## Known Issues:
-- Don't use non-alphanumeric characters if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail.
+- Goods Optimizer->Mission view sometimes shows missions where there is no trades available.
+- Don't use non-alphanumeric characters if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed.
 
 ## Planned Updates:
 - Mission Generator
