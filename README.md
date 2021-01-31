@@ -30,7 +30,8 @@ This tool searches the AircraftMarket table for available Planes for sale. It di
 3. Press search. Results will be shown, with the Distance based on your Pilot's current position.
 
 ### Mission Generator:
-This lets you generate custom missions for use in NeoFly. WARNING: All previous tools were designed to open the database read-only. This means they will not harm or modify your database. The mission generator opens the database with WRITE priviliges. Putting incorrect information here, or simply bad programming of the tool (equally if not more likely), means that your game may crash when attempting to load the mission you've added. I suggest noting down the ID (last field), so that you can find and delete it in the database if necessary.
+This lets you generate custom missions for use in NeoFly. 
+###### WARNING: All previous tools were designed to open the database read-only. This means they will not harm or modify your database. The mission generator opens the database with WRITE priviliges. Putting incorrect information here, or simply bad programming of the tool (equally if not more likely), means that your game may crash when attempting to load the mission you've added. I suggest noting down the ID (last field), so that you can find and delete it in the database if necessary. 
 ###### Backup your database. You can use the built-in button, or back it up yourself. I recommend both.
 1. Go to the mission generator tab.
 2. Choose your Departure ICAO (must be a valid ICAO), and your Arrival (which can be an ICAO for normal missions, or any text you'd like for Tourist/Emergency/Drop Zone missions).
