@@ -71,3 +71,11 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 1. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
 1. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
 1. 'Sbeuh34' for the OG mission generator and the fantastic multiplayer functionality: https://github.com/sbeuh34
+
+## Change Log:
+### v0.1.1
+- Fixed a localization issue (Goods Market in NeoFly tables has RefreshDate in strange formats). This may still be an issue depending on how your dates are formatted. The work-around was dirty.
+- Minor UI tweaks, organization, text, etc.
+
+### v0.1.0
+- Initial public release.
