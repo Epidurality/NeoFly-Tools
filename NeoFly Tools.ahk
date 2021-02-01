@@ -1,4 +1,4 @@
-﻿versionNumber := "0.1.0"
+﻿versionNumber := "0.1.1"
 ; Updates:			https://github.com/Epidurality/NeoFly-Tools/
 
 ; Script Function:  Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
@@ -38,7 +38,6 @@ global Pilot := {id: -1, weight: 170} ; Stores information about the current pil
 global Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pax: -1, location: "unknown"} ; Stores information about the selected Hangar plane
 global DB := new SQLiteDB ; SQLite database connection object
 global marketRefreshHours := 24 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
-global missionRefreshHours := 24 ; Similar to above, but for mission generation
 }
 
 ; ==== GUI =====
@@ -150,7 +149,7 @@ Gui, Add, Text, x+30, XP:
 Gui, Add, Edit, x+10 w50 vGenerator_xp, 65
 
 Gui, Add, Button, xm+10 y+20 gGenerator_FindLatLon, Find Lat/Lon
-Gui, Add, Text, x+10, For Drop Zone missions, Arrival Lat/Lon must be entered manually. Try www.gps-coordinates.net
+Gui, Add, Text, x+10, For Drop Zone and Tourist missions, Arrival Lat/Lon must be entered manually. Try www.gps-coordinates.net
 
 Gui, Add, Text, xm+10 y+20 w100, Departure Lat:
 Gui, Add, Edit, x+10 w200 vGenerator_latDep,
@@ -174,7 +173,7 @@ Gui, Add, Text, x+20, Randomize Weight:
 Gui, Add, CheckBox, x+10 vGenerator_RandomizeWeight,
 Gui, Add, Text, x+20, Randomize Reward:
 Gui, Add, CheckBox, x+10 vGenerator_RandomizeReward,
-Gui, Add, Text, x+20, NOTE: Randimization will be proportional.
+Gui, Add, Text, x+20 w225, NOTE: Randimization will be proportional, and uses entered values as maximums.
 
 Gui, Add, Button, xm+10 y+30 gGenerator_Preview, Generate Missions
 
@@ -183,7 +182,7 @@ Gui, Add, Text, xm+10 y+10, Generated Mission Previews:
 Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGenerator_PreviewLV gGenerator_PreviewLVClick
 
 Gui, Add, Text, xm+10 y+10, Double-click a row to commit it to the database. IDs added:
-Gui, Add, Text, x+10 w300 h50 vGenerator_AddedIDs,
+Gui, Add, Text, x+10 w300 h40 vGenerator_AddedIDs,
 
 Gui, Add, Text, xm+10 y+10 R2, Warning: this can only be reversed by deleting the entry in the database. Recommend noting the generated IDs so that it's easy to find and remove if it causes issues with NeoFly.
 }
@@ -349,7 +348,11 @@ Goods_RefreshMissions:
 			0 AS [Trade Profit],
 			0 AS [Total Income],
 			0 AS [Income/nm],
-			gm.refreshDate AS [Market Generated UTC]
+			CASE SUBSTR(gm.refreshDate, 3, 1)
+				WHEN '-' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
+				WHEN '/' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
+				ELSE gm.refreshDate
+			END  AS [Market Generated UTC]
 		FROM missions AS m
 		INNER JOIN goodsMarket AS gm
 		ON gm.location=m.arrival
@@ -362,7 +365,7 @@ Goods_RefreshMissions:
 			AND m.misionType != 9
 			AND m.misionType != 12
 			AND m.expiration > DATETIME('now', 'localtime')
-			AND gm.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
+			AND [Market Generated UTC] > DATETIME('now', '-%marketRefreshHours% hours')
 		GROUP BY m.id
 	)
 	result := SQLiteGetTable(DB, query)
@@ -378,7 +381,17 @@ Goods_RefreshMissions:
 				dep.name AS Good,
 				replace(dep.unitWeight, ',', '.') AS [Weight/u],
 				dest.unitPrice - dep.unitPrice AS [Profit/u],
-				MIN(dest.quantity, dep.quantity) AS [Max Qty]
+				MIN(dest.quantity, dep.quantity) AS [Max Qty],
+				CASE SUBSTR(dep.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					ELSE dep.refreshDate
+				END  AS depRefreshFormatted,
+				CASE SUBSTR(dest.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					ELSE dest.refreshDate
+				END  AS destRefreshFormatted		
 			FROM
 				goodsMarket AS dep
 			INNER JOIN
@@ -388,8 +401,8 @@ Goods_RefreshMissions:
 				AND dest.location='%qArrival%'
 				AND dep.tradeType=0
 				AND dest.tradeType=1
-				AND dep.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
-				AND dest.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
+				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
+				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
 		)
 		resultGood := SQLiteGetTable(DB, query)
 		totalProfit := 0
@@ -427,7 +440,17 @@ Goods_RefreshMissions:
 		FROM (
 			SELECT
 				dest.location AS location,
-				MIN(dep.refreshDate, dest.refreshDate) AS minRefreshDate
+				MIN(dep.refreshDate, dest.refreshDate) AS minRefreshDate,
+				CASE SUBSTR(dep.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					ELSE dep.refreshDate
+				END  AS depRefreshFormatted,
+				CASE SUBSTR(dest.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					ELSE dest.refreshDate
+				END  AS destRefreshFormatted	
 			FROM
 				goodsMarket AS dep
 			INNER JOIN
@@ -436,8 +459,8 @@ Goods_RefreshMissions:
 				dep.location='%Goods_DepartureICAO%'
 				AND dep.tradeType=0
 				AND dest.tradeType=1
-				AND dep.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
-				AND dest.refreshDate > DATETIME('now', '-%marketRefreshHours% hours') 
+				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
+				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours') 
 			GROUP BY dest.location) AS gm
 		INNER JOIN airport AS a
 		ON a.ident=gm.location
@@ -467,7 +490,17 @@ Goods_RefreshMissions:
 				dep.name AS Good,
 				replace(dep.unitWeight, ',', '.') AS [Weight/u],
 				dest.unitPrice - dep.unitPrice AS [Profit/u],
-				MIN(dest.quantity, dep.quantity) AS [Max Qty]
+				MIN(dest.quantity, dep.quantity) AS [Max Qty],
+				CASE SUBSTR(dep.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					ELSE dep.refreshDate
+				END  AS depRefreshFormatted,
+				CASE SUBSTR(dest.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					ELSE dest.refreshDate
+				END  AS destRefreshFormatted				
 			FROM
 				goodsMarket AS dep
 			INNER JOIN
@@ -477,8 +510,8 @@ Goods_RefreshMissions:
 				AND dest.location='%qArrival%'
 				AND dep.tradeType=0
 				AND dest.tradeType=1
-				AND dep.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
-				AND dest.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
+				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
+				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
 		)
 		resultGood := SQLiteGetTable(DB, query)
 		totalProfit := 0
@@ -576,8 +609,16 @@ Goods_RefreshMarket:
 			AND dest.location='%Goods_ArrivalICAO%'
 			AND dep.tradeType=0
 			AND dest.tradeType=1
-			AND dep.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
-			AND dest.refreshDate > DATETIME('now', '-%marketRefreshHours% hours')
+			AND CASE SUBSTR(dep.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					ELSE dep.refreshDate
+				END > DATETIME('now', '-%marketRefreshHours% hours')
+			AND CASE SUBSTR(dest.refreshDate, 3, 1)
+					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					ELSE dest.refreshDate
+				END > DATETIME('now', '-%marketRefreshHours% hours')
 		ORDER BY [Profit/lb] DESC
 	)
 	clipboard := query
