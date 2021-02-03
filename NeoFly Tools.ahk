@@ -1,4 +1,4 @@
-﻿versionNumber := "0.1.1"
+﻿versionNumber := "0.2.0"
 ; Updates:			https://github.com/Epidurality/NeoFly-Tools/
 
 ; Script Function:  Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
@@ -17,6 +17,9 @@ global autoConnect := FALSE
 ; The number of which tab to open to by default if AutoConnect is true (otherwise will default to the Settings tab). 1: Settings, 2: Goods Optimizer, 3: Aircraft Market, 4: Mission Generator
 global autoConnectDefaultTab := 2
 
+; Set to TRUE if you don't want to have the tray icon appear in your system notification area.
+global hideTrayIcon := false
+
 ; =============== EDITING ANYTHING BELOW HERE COULD BLOW THINGS UP ==================
 
 ; AHK Settings
@@ -28,8 +31,9 @@ SetWorkingDir, %A_ScriptDir%
 
 ; Includes
 {
-#Include Class_SQLiteDB.ahk ; This is the interface to the SQLite3 DLL. Credit to https://github.com/AHK-just-me/Class_SQLiteDB
-#Include Vincenty.ahk ; This is for calculating distances given lat/lon values. Credit to https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
+#Include %A_ScriptDir%/resources/Class_SQLiteDB.ahk ; This is the interface to the SQLite3 DLL. Credit to https://github.com/AHK-just-me/Class_SQLiteDB
+#Include %A_ScriptDir%/resources/Vincenty.ahk ; This is for calculating distances given lat/lon values. Credit to https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
+iconPath := A_ScriptDir . "/resources/default.ico"
 }
 
 ; Persistent global objects and variables
@@ -38,12 +42,26 @@ global Pilot := {id: -1, weight: 170} ; Stores information about the current pil
 global Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pax: -1, location: "unknown"} ; Stores information about the selected Hangar plane
 global DB := new SQLiteDB ; SQLite database connection object
 global marketRefreshHours := 24 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
+global fuelPercentForAircraftMarketPayload := 0.40 ; Percent (as decimal) of fuel to be used in the Effective Payload calculation, only in the Aircraft Market tab results.
 }
 
 ; ==== GUI =====
 
 ; GUI setup
 {
+IfExist, %iconPath%
+{
+	Menu, Tray, Icon, %iconPath%
+}
+If (hideTrayIcon) {
+	Menu, Tray, NoIcon
+} Else {
+	Menu, Tray, NoStandard
+	Menu, Tray, Add, Show, ShowTool
+	Menu, Tray, Add, Hide, HideTool
+	Menu, Tray, Add, Reload, ReloadTool
+	Menu, Tray, Add, Close, GuiClose
+}
 Gui, +LastFound +OwnDialogs
 Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Aircraft Market|Mission Generator
 Gui, Add, StatusBar
@@ -60,9 +78,9 @@ Gui, Add, Text, x+10 vSettings_Pilot, Connect to a database to get pilot informa
 Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick
 Gui, Add, Text, xm+10 y+20,
 (
-Note: Missions, Goods Market, and Aircraft Market are shared between Pilots. 
-Selecting a pilot here effectively just filters your Hangar in the Goods Optimizer. 
-The current NeoFly pilot will be used by default when you Connect to the database.
+Note: Missions, Goods Market, and Aircraft Market are shared between Pilots. `n
+Selecting a pilot here effectively just filters your Hangar in the Goods Optimizer. `n
+The current NeoFly pilot will be used by default when you Connect to the database. `n
 )
 Gui, Add, Text, xm+10 y+100, Version: v%versionNumber%
 }
@@ -71,13 +89,13 @@ Gui, Add, Text, xm+10 y+100, Version: v%versionNumber%
 {
 Gui, Tab, Goods Optimizer
 Gui, Add, Text, w50 h25, Departure ICAO:
-Gui, Add, Edit, x+10 wp hp Disabled vGoods_DepartureICAO,
+Gui, Add, Edit, x+10 wp hp vGoods_DepartureICAO,
 Gui, Add, Text, R2 x+20 wp hp, Arrival ICAO:
-Gui, Add, Edit, x+10 wp hp Disabled vGoods_ArrivalICAO,
+Gui, Add, Edit, x+10 wp hp Disabled vGoods_ArrivalICAO, ---
 Gui, Add, Text, R2 x+20 wp hp, Mission Weight:
-Gui, Add, Edit, x+10 wp hp Disabled vGoods_MissionWeight, 
+Gui, Add, Edit, x+10 wp hp Disabled vGoods_MissionWeight, ---
 Gui, Add, Text, R2 x+20 wp hp, Goods Weight:
-Gui, Add, Edit, x+10 wp hp Disabled vGoods_GoodsWeight, 
+Gui, Add, Edit, x+10 wp hp Disabled vGoods_GoodsWeight, ---
 
 Gui, Add, Text, xm+20 y+20 w50 h15, Aircraft:
 Gui, Add, Text, x+10 w150 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
@@ -89,14 +107,16 @@ Gui, Add, Text, xm+20 y+10 w50 hp, Mission:
 Gui, Add, Text, x+10 w200 hp vGoods_MissionInfo, ---
 
 Gui, Add, Button, xm+600 y50 gGoods_RefreshHangar, Refresh Hangar
-Gui, Add, Text, y+10 w300 vGoods_Hangar, Planes available for use in Hangar:
+Gui, Add, CheckBox, x+30 vGoods_HangarAll gGoods_RefreshHangar, Show All
+Gui, Add, Text, xm+600 y+10 w300 vGoods_Hangar, Hangar:
 Gui, Add, ListView, xm+350 y+10 w575 h150 Grid vGoods_HangarLV gGoods_HangarLVClick
 
 Gui, Add, Button, xm+10 y230 gGoods_RefreshMissions, Refresh Missions
-Gui, Add, Text, xm+10 y+10 w500 vGoods_Missions, NeoFly missions with markets: `t`t Note: does not take Pilot into account (no rank restriction)
+Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit gGoods_RefreshMissions, Include Illicit Goods
+Gui, Add, Text, xm+10 y+10 w500 vGoods_Missions, NeoFly Missions (with viable markets):
 Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_MissionsLV gGoods_MissionsLVClick
 
-Gui, Add, Text, xm+10 y+10 w500 vGoods_TradeMissions, Trade/transit Missions Available:
+Gui, Add, Text, xm+10 y+10 w500 vGoods_TradeMissions, Trade / Transit Missions:
 Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick
 
 Gui, Add, Text, xm+10 y+20 w400 vGoods_Trades, Optimal Goods:
@@ -107,10 +127,11 @@ Gui, Add, ListView, w915 h100 Grid Disabled vGoods_TradesLV
 {
 Gui, Tab, Aircraft Market
 Gui, Add, Text, , Aircraft Name (or part of name) as seen in NeoFly database:
-Gui, Add, Edit, w300 vAircraftMarket_Aircraft, CJ4
+Gui, Add, Edit, w300 vAircraftMarket_Aircraft, Cessna
 Gui, Add, Button, gAircraftMarket_Search, Search
 Gui, Add, ListView, w915 h450 Grid vAircraftMarket_LV
 Gui, Add, Text, xm+10 y+20, Note: Travel Cost represents a one-way trip from your pilot's current location to the plane's Location.
+Gui, Add, Text, xm+10 y+20, % "Other Note: Effective Payload is the payload of the plane after subtracting the Pilot's weight (" . Pilot.weight . "lbs) and " . ROUND(fuelPercentForAircraftMarketPayload*100,0) . "% of max fuel."
 }
 
 ; GUI Mission Generator tab
@@ -167,12 +188,9 @@ Gui, Add, Edit, x+10 w100 vGenerator_dist, 100
 
 Gui, Add, Text, xm+10 y+20, Missions to Generate:
 Gui, Add, Edit, x+10 w50 vGenerator_Quantity, 1
-Gui, Add, Text, x+20, Randomize Pax:
-Gui, Add, CheckBox, x+10 vGenerator_RandomizePax,
-Gui, Add, Text, x+20, Randomize Weight:
-Gui, Add, CheckBox, x+10 vGenerator_RandomizeWeight,
-Gui, Add, Text, x+20, Randomize Reward:
-Gui, Add, CheckBox, x+10 vGenerator_RandomizeReward,
+Gui, Add, CheckBox, x+10 vGenerator_RandomizePax, Randomize Pax
+Gui, Add, CheckBox, x+10 vGenerator_RandomizeWeight, Randomize Weight
+Gui, Add, CheckBox, x+10 vGenerator_RandomizeReward, Randomize Reward
 Gui, Add, Text, x+20 w225, NOTE: Randimization will be proportional, and uses entered values as maximums.
 
 Gui, Add, Button, xm+10 y+30 gGenerator_Preview, Generate Missions
@@ -182,7 +200,7 @@ Gui, Add, Text, xm+10 y+10, Generated Mission Previews:
 Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGenerator_PreviewLV gGenerator_PreviewLVClick
 
 Gui, Add, Text, xm+10 y+10, Double-click a row to commit it to the database. IDs added:
-Gui, Add, Text, x+10 w300 h40 vGenerator_AddedIDs,
+Gui, Add, Edit, x+10 vscroll +readonly w150 h40 vGenerator_AddedIDs,
 
 Gui, Add, Text, xm+10 y+10 R2, Warning: this can only be reversed by deleting the entry in the database. Recommend noting the generated IDs so that it's easy to find and remove if it causes issues with NeoFly.
 }
@@ -202,12 +220,29 @@ return
 ; GUI functions
 GuiClose:
 {
-	Gui, Cancel
 	DB.CloseDB()
 	ExitApp
 	return
 }
 
+ReloadTool:
+{
+	DB.CloseDB()
+	Reload
+	return
+}
+
+ShowTool:
+{
+	Gui, Show
+	return
+}
+
+HideTool:
+{
+	Gui, Hide
+	return
+}
 
 ; ==== SUBROUTINES =====
 
@@ -218,7 +253,7 @@ Settings_Connect:
 	DB := new SQLiteDB
 	GuiControlGet, Settings_DBPath
 	SB_SetText("Opening " . Settings_DBPath)
-	If (!DB.OpenDB(Settings_DBPath, "R")) {
+	If (!DB.OpenDB(Settings_DBPath, "R", False)) {
 		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
 		return
 	}
@@ -236,6 +271,8 @@ Settings_Connect:
 				Pilot.id := Row[2]
 				GuiControl, , Settings_Pilot, % "ID: " . Row[2] . "`t Callsign: " . Row[1]
 				Row[3] := "<<<"
+			} Else {
+				Row[3] := " "
 			}
 		}
 		result.Reset()
@@ -266,25 +303,42 @@ Settings_PilotLVClick:
 Goods_RefreshHangar:
 {
 	SB_SetText("Refreshing hangar...")
+	GuiControlGet, Goods_HangarAll
 	LV_Clear("Goods_MissionsLV")
 	LV_Clear("Goods_TradeMissionsLV")
 	LV_Clear("Goods_TradesLV")
+	GuiControl, , Goods_ArrivalICAO, ---
+	GuiControl, , Goods_MissionWeight, ---
+	GuiControl, , Goods_GoodsWeight, ---
 	qPilotID := Pilot.id
+	If (Goods_HangarAll) {
+		qStatusClause := "hangar.status != 5"
+	} Else {
+		qStatusClause := "hangar.status = 0"
+	}
 	query = 
 	(
 		SELECT 
 			hangar.id, 
 			hangar.Aircraft, 
-			hangar.Qualification, 
+			CASE hangar.status
+				WHEN 0 THEN 'Available'
+				WHEN 1 THEN 'Flying'
+				WHEN 3 THEN 'Hired'
+				WHEN 5 THEN 'Removed'
+				ELSE 'Unknown'
+			END AS Status, 
 			hangar.MaxPayloadlbs AS [Max Payload], 
 			hangar.Pax AS [Max Pax], 
 			hangar.Location, 
 			CAST(hangar.statusEngine AS int) AS Engine, 
 			CAST(hangar.statusHull AS int) AS Hull, 
 			hangar.currentFuel AS Fuel,
-			aircraftdata.FuelCaplbs AS [Max Fuel]
+			aircraftdata.FuelCaplbs AS [Max Fuel],
+			hangar.Qualification
 		FROM hangar INNER JOIN aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
-		WHERE owner=%qPilotID% AND status=0
+		WHERE owner=%qPilotID% 
+		AND %qStatusClause%
 		ORDER BY hangar.id
 	)
 	result := SQLiteGetTable(DB, query)
@@ -310,13 +364,12 @@ Goods_HangarLVClick:
 		Plane.id := lvId
 		Plane.name := lvName
 		Plane.payload := lvPayload
-		Plane.pax := lvPax
 		Plane.location := lvLocation
 		Plane.fuel := lvFuel
 		Plane.maxFuel := lvMaxFuel
 		GuiControl, , Goods_PlaneInfo, % Plane.name . " (ID#" . Plane.id . ")"
 		GuiControl, , Goods_PayloadInfo, Choose mission
-		GuiControl, , Goods_FuelInfo, % Plane.fuel . " / " . Plane.maxFuel . "lbs (" . ROUND(Plane.fuel*100/Plane.maxFuel,0) . "%)"
+		GuiControl, , Goods_FuelInfo, % Plane.fuel . " / " . Plane.maxFuel . "lbs (" . FLOOR(Plane.fuel*100/Plane.maxFuel) . "%)"
 		GuiControl, , Goods_MissionInfo, Choose mission
 		GuiControl, , Goods_DepartureICAO, % Plane.location
 		SB_SetText("New plane selected")
@@ -329,10 +382,42 @@ Goods_RefreshMissions:
 {
 	SB_SetText("Refreshing missions...")
 	LV_Clear("Goods_TradesLV")
+	GuiControl, , Goods_ArrivalICAO, ---
+	GuiControl, , Goods_MissionWeight, ---
+	GuiControl, , Goods_GoodsWeight, ---
 	GuiControlGet, Goods_DepartureICAO
-	GuiControlGet, Goods_ArrivalICAO
+	;GuiControlGet, Goods_ArrivalICAO
+	GuiControlGet, Goods_IncludeIllicit
+	; Check for a market at the Departure ICAO
+	query = 
+	(
+		SELECT 
+			CASE SUBSTR(gm.refreshDate, 3, 1)
+				WHEN '-' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
+				WHEN '/' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
+				ELSE gm.refreshDate
+			END  AS [Market Generated]
+		FROM goodsMarket AS gm
+		WHERE [Market Generated] > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+		AND gm.location = '%Goods_DepartureICAO%'
+		LIMIT 1
+	)
+	result := SQLiteGetTable(DB, query)
+	If (result.RowCount < 1) {
+		MsgBox, 64, Error: No Market Data, % "Could not find market at Departure ICAO.`n`nPlease try searching or previewing the market at " . Goods_DepartureICAO . ", then refreshing the missions."
+		LV_Clear("Goods_MissionsLV")
+		LV_Clear("Goods_TradeMissionsLV")
+		LV_Clear("Goods_TradesLV")
+		return
+	}
+	If (Goods_IncludeIllicit) {
+		qIllicit := "!= -1"
+	} Else {
+		qIllicit := "!= 4"
+	}
 	qPayload := Plane.payload - Plane.fuel - Pilot.weight
 	qPax := Plane.pax
+	; Get NeoFly missions
 	query =
 	(
 		SELECT
@@ -352,23 +437,26 @@ Goods_RefreshMissions:
 				WHEN '-' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
 				WHEN '/' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
 				ELSE gm.refreshDate
-			END  AS [Market Generated UTC]
+			END  AS [Market Generated],
+			'' AS [Can Buy At Arrival]
 		FROM missions AS m
 		INNER JOIN goodsMarket AS gm
 		ON gm.location=m.arrival
 		WHERE
 			departure='%Goods_DepartureICAO%'
-			AND m.weight < %qPayload%
-			AND m.pax < %qPax%
+			AND gm.location != '%Goods_DepartureICAO%'
+			AND m.weight <= %qPayload%
+			AND m.pax <= %qPax%
 			AND m.misionType != 7
 			AND m.misionType != 8
 			AND m.misionType != 9
 			AND m.misionType != 12
 			AND m.expiration > DATETIME('now', 'localtime')
-			AND [Market Generated UTC] > DATETIME('now', '-%marketRefreshHours% hours')
+			AND [Market Generated] > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 		GROUP BY m.id
 	)
 	result := SQLiteGetTable(DB, query)
+	; Analyze NeoFly missions
 	Loop % result.RowCount {
 		result.Next(Row)
 		qDeparture := Row[2]
@@ -391,19 +479,22 @@ Goods_RefreshMissions:
 					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					ELSE dest.refreshDate
-				END  AS destRefreshFormatted		
+				END  AS destRefreshFormatted
 			FROM
 				goodsMarket AS dep
 			INNER JOIN
 				goodsMarket AS dest ON dep.name=dest.name
 			WHERE
 				dep.location='%qDeparture%'
+				AND dep.type %qIllicit%
 				AND dest.location='%qArrival%'
 				AND dep.tradeType=0
 				AND dest.tradeType=1
-				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
-				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
+				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+			ORDER BY [Profit/u]/[Weight/u] DESC
 		)
+		clipboard := query
 		resultGood := SQLiteGetTable(DB, query)
 		totalProfit := 0
 		availablePayload := Plane.payload - Plane.fuel - qCargo - Pilot.weight
@@ -416,16 +507,20 @@ Goods_RefreshMissions:
 		Row[10] := totalProfit
 		Row[11] := totalProfit + Row[7]
 		Row[12] := ROUND(Row[11]/Row[4],0)
+		query = 
+		(
+			SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+		)
+		resultAvailable := SQLiteGetTable(DB, query)
+		Loop % resultAvailable.RowCount {
+			resultAvailable.Next(RowAvailable)
+			Row[14] := Row[14] . RowAvailable[1] . ", "
+		}
 	}
 	result.Reset()
 	LV_ShowTable(result, "Goods_MissionsLV")
-	LV_ModifyCol(4, "Integer")
-	LV_ModifyCol(7, "Integer")
-	LV_ModifyCol(10, "Integer")
-	LV_ModifyCol(11, "Integer")
-	LV_ModifyCol(12, "Integer")
 	LV_ModifyCol(12, "SortDesc")
-	
+	; Get viable trade missions
 	query = 
 	(
 		SELECT 
@@ -436,7 +531,8 @@ Goods_RefreshMissions:
 			0 AS [Profit/nm],
 			a.lonx AS [Arrival Lon],
 			a.laty AS [Arrival Lat],
-			gm.minRefreshDate AS [Market Generated UTC]
+			gm.minRefreshDate AS [Market Generated],
+			'' AS [Can Buy At Arrival]
 		FROM (
 			SELECT
 				dest.location AS location,
@@ -459,13 +555,14 @@ Goods_RefreshMissions:
 				dep.location='%Goods_DepartureICAO%'
 				AND dep.tradeType=0
 				AND dest.tradeType=1
-				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
-				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours') 
+				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime') 
 			GROUP BY dest.location) AS gm
 		INNER JOIN airport AS a
 		ON a.ident=gm.location
 	)
 	result := SQLiteGetTable(DB, query)
+	; Get plane location for distance calcs
 	qPlaneID := Plane.id
 	query = 
 	(
@@ -480,6 +577,7 @@ Goods_RefreshMissions:
 	resultPlaneLoc.GetRow(1, RowPlaneLoc)
 	pilotLonX := RowPlaneLoc[1]
 	pilotLatY := RowPlaneLoc[2]
+	; Analyze each trade mission
 	Loop % result.RowCount {
 		result.Next(Row)
 		qDeparture := Row[1]
@@ -507,11 +605,13 @@ Goods_RefreshMissions:
 				goodsMarket AS dest ON dep.name=dest.name
 			WHERE
 				dep.location='%qDeparture%'
+				AND dep.type %qIllicit%
 				AND dest.location='%qArrival%'
 				AND dep.tradeType=0
 				AND dest.tradeType=1
-				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
-				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours')
+				AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+				AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+			ORDER BY [Profit/u]/[Weight/u] DESC
 		)
 		resultGood := SQLiteGetTable(DB, query)
 		totalProfit := 0
@@ -520,17 +620,23 @@ Goods_RefreshMissions:
 			resultGood.Next(RowGood)
 			maxQty := FLOOR(MIN(RowGood[4], availablePayload/RowGood[2]))
 			totalProfit += maxQty * RowGood[3]
-			availablePayload -= maxQty*RowGood[2]
+			availablePayload := availablePayload - maxQty*RowGood[2]
 		}
 		Row[3] := totalProfit
 		Row[4] := ROUND(0.000539957*InvVincenty(pilotLatY, pilotLonX, Row[7], Row[6]), 0)
 		Row[5] := ROUND(Row[3]/Row[4],0)
+		query = 
+		(
+			SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+		)
+		resultAvailable := SQLiteGetTable(DB, query)
+		Loop % resultAvailable.RowCount {
+			resultAvailable.Next(RowAvailable)
+			Row[9] := Row[9] . RowAvailable[1] . ", "
+		}
 	}
 	result.Reset()
 	LV_ShowTable(result, "Goods_TradeMissionsLV")
-	LV_ModifyCol(3, "Integer")
-	LV_ModifyCol(4, "Integer")
-	LV_ModifyCol(5, "Integer")
 	LV_ModifyCol(5, "SortDesc")
 	SB_SetText("Missions refreshed")
 	return
@@ -579,33 +685,36 @@ Goods_RefreshMarket:
 	GuiControlGet, Goods_DepartureICAO
 	GuiControlGet, Goods_ArrivalICAO
 	GuiControlGet, Goods_MissionWeight
+	; Get trades possible from current Dep/Arrival combination
 	query = 
 	(
 		SELECT
 			dep.name AS Good,
-			replace(dep.unitWeight, ',', '.') AS [Weight/u],
-			dep.quantity AS [Qty at %Goods_DepartureICAO%],
-			dep.unitPrice AS [Price at %Goods_DepartureICAO%],
-			dest.quantity AS [Qty at %Goods_ArrivalICAO%],
-			dest.unitPrice AS [Price at %Goods_ArrivalICAO%],
-			dest.unitPrice - dep.unitPrice AS [Profit/u],
-			ROUND((dest.unitPrice - dep.unitPrice)/CAST(replace(dep.unitWeight, ',', '.') AS NUMERIC),2) AS [Profit/lb],
-			MIN(dest.quantity, dep.quantity) AS [Max Qty],
-			MIN(dest.quantity, dep.quantity)*(dest.unitPrice-dep.unitPrice) AS [Max Profit],
-			replace(dep.unitWeight, ',', '.')*MIN(dest.quantity, dep.quantity) AS [Max Weight],
 			CASE
 				WHEN dep.type = 1 THEN 'Normal'
 				WHEN dep.type = 2 THEN 'Fragile'
 				WHEN dep.type = 3 THEN 'Perishable'
 				WHEN dep.type = 4 THEN 'Illicit'
 				ELSE 'Unknown' 
-			END Type
+			END Type,
+			replace(dep.unitWeight, ',', '.') AS [Weight/u],
+			dep.quantity AS [Have at %Goods_DepartureICAO%],
+			dep.unitPrice AS [Buy Price],
+			dest.quantity AS [Want at %Goods_ArrivalICAO%],
+			dest.unitPrice AS [Sell Price],
+			dest.unitPrice - dep.unitPrice AS [Profit/u],
+			ROUND((dest.unitPrice - dep.unitPrice)/CAST(replace(dep.unitWeight, ',', '.') AS NUMERIC),2) AS [Profit/lb],
+			MIN(dest.quantity, dep.quantity) AS [Max Qty],
+			0 AS [Buy Cost],
+			MIN(dest.quantity, dep.quantity)*(dest.unitPrice-dep.unitPrice) AS [Max Profit],
+			replace(dep.unitWeight, ',', '.')*MIN(dest.quantity, dep.quantity) AS [Max Weight]
 		FROM
 			goodsMarket AS dep
 		INNER JOIN
 			goodsMarket AS dest ON dep.name=dest.name
 		WHERE
 			dep.location='%Goods_DepartureICAO%'
+			AND dep.type %qIllicit%
 			AND dest.location='%Goods_ArrivalICAO%'
 			AND dep.tradeType=0
 			AND dest.tradeType=1
@@ -613,41 +722,41 @@ Goods_RefreshMarket:
 					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dep.refreshDate
-				END > DATETIME('now', '-%marketRefreshHours% hours')
+				END > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 			AND CASE SUBSTR(dest.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					ELSE dest.refreshDate
-				END > DATETIME('now', '-%marketRefreshHours% hours')
+				END > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 		ORDER BY [Profit/lb] DESC
 	)
-	clipboard := query
 	result := SQLiteGetTable(DB, query)
+	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
 	availablePayload := Plane.payload - Plane.fuel- Goods_MissionWeight - Pilot.weight
 	goodsWeight := availablePayload
-	result.ColumnNames[9] := "Buy Qty"
-	result.ColumnNames[10] := "Profit"
-	result.ColumnNames[11] := "Weight"
+	result.ColumnNames[10] := "Buy Qty"
+	result.ColumnNames[12] := "Profit"
+	result.ColumnNames[13] := "Weight"
 	Loop % result.RowCount {
 		result.Next(Row)
-		maxQty := FLOOR(MIN(Row[9], availablePayload/Row[2]))
-		Row[9] := maxQty
-		Row[10] := maxQty * Row[7]
-		Row[11] := Round(maxQty * Row[2],2)
-		totalProfit += Row[10]
-		availablePayload := availablePayload - maxQty*Row[2]
+		maxQty := FLOOR(MIN(Row[10], availablePayload/Row[3]))
+		Row[10] := maxQty
+		Row[12] := maxQty * Row[8]
+		Row[11] := maxQty * Row[5]
+		Row[13] := Round(maxQty * Row[3],2)
+		totalProfit += Row[12]
+		availablePayload := availablePayload - maxQty*Row[3]
 	}
 	result.Reset()
 	goodsWeight -= availablePayload
-	GuiControl, , Goods_PayloadInfo, % CEIL(simPayload-availablePayload) . " / " . simPayload . "lbs (" . CEIL((simPayload-availablePayload)*100/simPayload) . "%)"
+	GuiControl, , Goods_PayloadInfo, % ROUND(simPayload-availablePayload,2) . " / " . simPayload . "lbs (" . CEIL((simPayload-availablePayload)*100/simPayload) . "%)"
 	GuiControl, , Goods_GoodsWeight, % ROUND(goodsWeight,0)
 	LV_ShowTable(result, "Goods_TradesLV")
 	SB_SetText("Optimal goods refreshed")
 	return
 }
-
 
 ; == Subroutines - Aircraft Market Tab ==
 AircraftMarket_Search:
@@ -668,6 +777,7 @@ AircraftMarket_Search:
 		pilotLatY := Row[2]
 	}
 
+	qPilotWeight := Pilot.weight
 	query = 
 	(
 		SELECT
@@ -678,11 +788,28 @@ AircraftMarket_Search:
 			0 AS [Total Cost],
 			0 AS [Distance],
 			airport.lonx AS Longitude,
-			airport.laty AS Latitude
+			airport.laty AS Latitude,
+			am.Qualification AS Qualification,
+			ad.CruiseSpeedktas AS [Cruise Speed (kts)],
+			ad.rangenm AS [Range(nm)],
+			ad.FuelCaplbs AS [Max Fuel(lbs)],
+			ad.MaxPayloadlbs AS [Max Payload],
+			ad.MaxPayloadlbs - (ad.FuelCaplbs*%fuelPercentForAircraftMarketPayload%) - %qPilotWeight% AS [Effective Payload],
+			ad.Pax AS [Pax],
+			0 AS [Cost/Range]	,
+			0 AS [Cost/Payload],
+			0 AS [Cost/Effective Payload],
+			0 AS [Cost/Pax]			
 		FROM
-			airport INNER JOIN aircraftMarket AS am
+			airport
+		INNER JOIN 
+			aircraftMarket AS am
 		ON
 			airport.ident = am.location
+		INNER JOIN 
+			aircraftData AS ad
+		ON 
+			ad.Aircraft = am.Aircraft
 		WHERE
 			am.aircraft LIKE '`%%AircraftMarket_Aircraft%`%'
 		ORDER BY
@@ -695,10 +822,13 @@ AircraftMarket_Search:
 		Row[6] := ROUND(0.000539957*InvVincenty(pilotLatY, pilotLonX, Row[8], Row[7]), 0)
 		Row[4] := ROUND(Row[6] * moveCostPerMile,0)
 		Row[5] := ROUND(Row[3] + Row[4],0)
+		Row[16] := ROUND(Row[5] / Row[11],0) ; Cost/range
+		Row[17] := ROUND(Row[5] / Row[13],0) ; Cost/payload
+		Row[18] := ROUND(Row[5] / Row[14],0) ; Cost/effective payload
+		Row[19] := ROUND(Row[5] / Row[15],0) ; Cost/Pax
 	}
 	result.reset()
 	LV_ShowTable(result, "AircraftMarket_LV")
-	LV_ModifyCol(5, "Integer")
 	LV_ModifyCol(5, "Sort")
 	SB_SetText("Aircraft market searched")
 	return
@@ -889,8 +1019,7 @@ Generator_Preview:
 				'%Generator_rankS%' AS rankS,
 				'%Generator_rankI%' AS rankI,
 				'' AS liveID,
-				%Generator_xp% AS xp,
-				(SELECT MAX(id)+%A_Index% FROM missions) AS id
+				%Generator_xp% AS xp
 		)
 		query := query . nextQuery
 		If (A_Index<Generator_Quantity) {
@@ -954,12 +1083,12 @@ Generator_PreviewLVClick:
 				'%qVar32%' AS rankI,
 				'%qVar33%' AS liveID,
 				%qVar34% AS xp,
-				%qVar35% AS id
+				(SELECT id FROM missions ORDER BY id DESC LIMIT 1)+1 AS id
 		)
 		
 		DB.CloseDB()
 		GuiControlGet, Settings_DBPath
-		If (!DB.OpenDB(Settings_DBPath)) {
+		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
 			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
 			return
 		}
@@ -967,15 +1096,23 @@ Generator_PreviewLVClick:
 			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`nQuery: `t" . query . "`n`nEnsure that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
 			return
 		}
+		query =
+		(
+			SELECT id FROM missions ORDER BY id DESC LIMIT 1
+		)
+		result := SQLiteGetTable(DB, query)
+		result.GetRow(1,Row)
+		insertedId := Row[1]
+
 		DB.CloseDB()
-		If (!DB.OpenDB(Settings_DBPath, "R")) {
+		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
 			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
 			return
 		}
-		GuiControl, , Generator_AddedIDs, % Generator_AddedIDs . qVar35 . "  "
 		GuiControlGet, Generator_AddedIDs
+		GuiControl, , Generator_AddedIDs, % Generator_AddedIDs . insertedId . "`n"
 		LV_Delete(A_EventInfo)
-		SB_SetText("Mission entered into database. ID: " . qVar35)		
+		SB_SetText("Mission entered into database. ID: " . insertedId)
 	}
 	return
 }
@@ -986,6 +1123,7 @@ Generator_PreviewLVClick:
 SQLiteGetTable(database, query) {
 	resultTable := ""
 	If (!database.GetTable(query, resultTable)) {
+		
 		MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`nQuery: `t" . query . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
 		IfMsgBox Yes
 		{
@@ -1007,12 +1145,19 @@ LV_ShowTable(Table, LV) {
 			Loop, % Table.RowCount {
 				RowCount := LV_Add("", "")
 				Table.Next(stRow)
-				Loop, % Table.ColumnCount
+				Loop, % Table.ColumnCount {
 					LV_Modify(RowCount, "Col" . A_Index, stRow[A_Index])
+				}
 			}
 		}
-    Loop, % Table.ColumnCount
+	}
+    Loop, % Table.ColumnCount {
         LV_ModifyCol(A_Index, "AutoHdr")
+		LV_GetText(numberCheck, 1, A_Index)
+		If numberCheck Is digit
+		{
+			LV_ModifyCol(A_Index, "Integer")
+		}
 	}
 	GuiControl, +ReDraw, %LV%
 }
