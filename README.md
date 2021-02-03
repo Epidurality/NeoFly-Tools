@@ -2,6 +2,7 @@
 Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
 
 ## Instructions:
+**Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!**
 
 ### Installation:
 1a. Download the Source Code zip from the latest release. Place all source files into a single folder, anywhere you'd like. These are normal AHK scripts which can be run with AutoHotkey (https://www.autohotkey.com/download/)
@@ -60,6 +61,7 @@ This lets you generate custom missions for use in NeoFly.
 1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
 
 ## Known Issues:
+- Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-around covers them all.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
 ## New Issues:
@@ -68,6 +70,7 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 ## Planned Updates:
 - Randomize missions further.
 - Add new mission types: Airline, Humanitarian, SAR, Intercept
+- Remove some of the unneccessary columns in various views; they're useful for debugging these early versions, but useless for most people.
 - Market Search (search for goods that are being sold or bought)
 
 ## Feature Requests:
@@ -81,6 +84,10 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Change Log:
+
+### v0.2.1
+- Fixed localization bug with *dd.mm.yyyy* formatting
+- Fixed bug where missions weren't showing up due to incorrect Pax counts
 
 ### v0.2.0
 - Added ability to sort on any numerical column properly (number based instead of text based sort).

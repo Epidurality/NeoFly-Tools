@@ -1,4 +1,4 @@
-﻿versionNumber := "0.2.0"
+﻿versionNumber := "0.2.1"
 ; Updates:			https://github.com/Epidurality/NeoFly-Tools/
 
 ; Script Function:  Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
@@ -14,7 +14,7 @@ global defaultDbPath := "C:\ProgramData\NeoFly\common.db"
 ; Automatically connects to the DBPath on startup if TRUE.
 global autoConnect := FALSE
 
-; The number of which tab to open to by default if AutoConnect is true (otherwise will default to the Settings tab). 1: Settings, 2: Goods Optimizer, 3: Aircraft Market, 4: Mission Generator
+; The number of which tab to open to by default if AutoConnect is true (otherwise will default to the Settings tab). 1: Settings, 2: Goods Optimizer, etc.
 global autoConnectDefaultTab := 2
 
 ; Set to TRUE if you don't want to have the tray icon appear in your system notification area.
@@ -364,6 +364,7 @@ Goods_HangarLVClick:
 		Plane.id := lvId
 		Plane.name := lvName
 		Plane.payload := lvPayload
+		Plane.pax := lvPax
 		Plane.location := lvLocation
 		Plane.fuel := lvFuel
 		Plane.maxFuel := lvMaxFuel
@@ -386,7 +387,6 @@ Goods_RefreshMissions:
 	GuiControl, , Goods_MissionWeight, ---
 	GuiControl, , Goods_GoodsWeight, ---
 	GuiControlGet, Goods_DepartureICAO
-	;GuiControlGet, Goods_ArrivalICAO
 	GuiControlGet, Goods_IncludeIllicit
 	; Check for a market at the Departure ICAO
 	query = 
@@ -395,6 +395,7 @@ Goods_RefreshMissions:
 			CASE SUBSTR(gm.refreshDate, 3, 1)
 				WHEN '-' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
 				WHEN '/' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
+				WHEN '.' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
 				ELSE gm.refreshDate
 			END  AS [Market Generated]
 		FROM goodsMarket AS gm
@@ -436,9 +437,16 @@ Goods_RefreshMissions:
 			CASE SUBSTR(gm.refreshDate, 3, 1)
 				WHEN '-' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
 				WHEN '/' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
+				WHEN '.' THEN SUBSTR(gm.refreshDate, 7, 4)||SUBSTR(gm.refreshDate, 4, 2)||SUBSTR(gm.refreshDate, 1, 2)||' '||SUBSTR(gm.refreshDate, 11)
 				ELSE gm.refreshDate
 			END  AS [Market Generated],
-			'' AS [Can Buy At Arrival]
+			'' AS [Can Buy At Arrival],
+			CASE SUBSTR(m.expiration, 3, 1)
+				WHEN '-' THEN SUBSTR(m.expiration, 7, 4)||SUBSTR(m.expiration, 4, 2)||SUBSTR(m.expiration, 1, 2)||' '||SUBSTR(m.expiration, 11)
+				WHEN '/' THEN SUBSTR(m.expiration, 7, 4)||SUBSTR(m.expiration, 4, 2)||SUBSTR(m.expiration, 1, 2)||' '||SUBSTR(m.expiration, 11)
+				WHEN '.' THEN SUBSTR(m.expiration, 7, 4)||SUBSTR(m.expiration, 4, 2)||SUBSTR(m.expiration, 1, 2)||' '||SUBSTR(m.expiration, 11)
+				ELSE m.expiration
+			END  AS [Mission Expiration]
 		FROM missions AS m
 		INNER JOIN goodsMarket AS gm
 		ON gm.location=m.arrival
@@ -451,7 +459,7 @@ Goods_RefreshMissions:
 			AND m.misionType != 8
 			AND m.misionType != 9
 			AND m.misionType != 12
-			AND m.expiration > DATETIME('now', 'localtime')
+			AND [Mission Expiration] > DATETIME('now', 'localtime')
 			AND [Market Generated] > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 		GROUP BY m.id
 	)
@@ -473,11 +481,13 @@ Goods_RefreshMissions:
 				CASE SUBSTR(dep.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dep.refreshDate
 				END  AS depRefreshFormatted,
 				CASE SUBSTR(dest.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					ELSE dest.refreshDate
 				END  AS destRefreshFormatted
 			FROM
@@ -540,11 +550,13 @@ Goods_RefreshMissions:
 				CASE SUBSTR(dep.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dep.refreshDate
 				END  AS depRefreshFormatted,
 				CASE SUBSTR(dest.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					ELSE dest.refreshDate
 				END  AS destRefreshFormatted	
 			FROM
@@ -592,11 +604,13 @@ Goods_RefreshMissions:
 				CASE SUBSTR(dep.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dep.refreshDate
 				END  AS depRefreshFormatted,
 				CASE SUBSTR(dest.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dest.refreshDate
 				END  AS destRefreshFormatted				
 			FROM
@@ -721,11 +735,13 @@ Goods_RefreshMarket:
 			AND CASE SUBSTR(dep.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dep.refreshDate
 				END > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 			AND CASE SUBSTR(dest.refreshDate, 3, 1)
 					WHEN '-' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
 					WHEN '/' THEN SUBSTR(dest.refreshDate, 7, 4)||SUBSTR(dest.refreshDate, 4, 2)||SUBSTR(dest.refreshDate, 1, 2)||' '||SUBSTR(dest.refreshDate, 11)
+					WHEN '.' THEN SUBSTR(dep.refreshDate, 7, 4)||SUBSTR(dep.refreshDate, 4, 2)||SUBSTR(dep.refreshDate, 1, 2)||' '||SUBSTR(dep.refreshDate, 11)
 					ELSE dest.refreshDate
 				END > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 		ORDER BY [Profit/lb] DESC
