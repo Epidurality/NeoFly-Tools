@@ -14,10 +14,22 @@ In either case, make sure that "sqlite.dll" is in the same directory as your *Ne
 ###### Note: I do not test the .exe beyond simply making sure it runs, though I don't forsee there being issues with using the .exe as this is a relatively simple set of scripts.
 
 ### Connecting to the Database:
-1. Go to the Sttings tab
+1. Go to the Settings tab
 1. Ensure that the Database Path is the correct path to your NeoFly *common.db* SQLite database. Normally located in *C:\ProgramData\Neofly*
 1. Press Connect.
 1. Under "Pilot Loaded", you should see the ID and Callsign of your most recently active pilot.
+1. You may choose a different Pilot from the list (double-click). This effectivly only affects the list of planes in your Hangar, as most other tables are shared in the database.
+1. In the bottom half of the Settings tab, there is information about the Date Formats used for the NeoFly database.
+    1. NeoFly does not use standard SQLite formats for dates, so the dates must be converted from how they appear in the database before they can be analyzed by these Tools.
+	1. Depending on your locale, there may be separate date formats for the *Missions.expiry* field and the *GoodsMarket.refreshDate* field.
+1. In order to confirm that the dates will work correctly, select your date formats from the dropdowns.
+1. When you hit the *Check Timestamp Format* button, it will search your database for Goods Market and Mission expiration dates, and displays the 300 most recent results for each table:
+    1. *DB Value* shows the field exactly as it is in the database. This can be used to help determine your format.
+	1. *Formatted* shows the code's attempt to format the DB value, based on your chosen formats.
+	1. *Validation* is a check, where the code attempts to convert the reformatted date into a Timestamp type. If it fails to convert, INVALID will show. This indicates that the script would not be able to handle the date based on the chosen format.
+1. Play with the formats until both the *Mission.Expiration* AND *GoodsMarket.RefreshDate* results no longer have any INVALID entires.
+1. If none of the available formats work for you, please use the GitHub "Issues" feature with an example of your timestamp as it shows in the *DB Value* column.
+1. Note: For the reformatting to work halfway efficiently, you may have the Seconds truncated from your timestamps. This is unlikely to be a problem, but raise an Issue if it is.
 
 ### Goods Optimizer:
 This tool is to help optimize your trading in NeoFly. It analyzes your Plane's weight, fuel, and payload, and determines which goods are able to be traded between your Departure (where the Plane currently is) and your Destination (as determined by the destination of your chosen mission).
@@ -34,6 +46,12 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 1. Once you've found a Mission or Trade mission you like, double-click the row. This will populate the *Optimized Goods* view, which shows a breakdown of which goods you should buy and in which quantities.
     1. Buy Qty is the Optimized quantity you should be purchasing at your Departure ICAO.
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. Either edit the database (see the NeoFly documents/discord for help on this), or manually adjust the values to suit.
+
+### Market Finder:
+Displays where you can find Markets selling or buying the Good you specify. Useful for finding somewhere to sell your load of goods.
+1. Enter the information about the good(s) you wish to find. The *Name* field uses a LIKE search, meaning "pho" will match with "Phone" as well as "Telephoto Lens"
+1. Press the search button.
+1. First view shows the ICAOs which are BUYING those Goods from the user, second view shows the ICAOs which will SELL those Goods to the user.
 
 ### Aircraft Market:
 This tool searches the AircraftMarket table for available Planes for sale. It displays the prices and (approximate) distance to the airport selling the plane. It also estimates your ONE-WAY travel cost of paying to bring your Pilot to the airport selling the plane.
@@ -57,21 +75,38 @@ This lets you generate custom missions for use in NeoFly.
 1. Double-click a row to commit it to the database. The row will be removed from view and the ID of the row will be added to the text below the list for reference.
 1. Search your ICAO for the new mission in NeoFly, and try it out!
 
+### Auto-Market Search:
+Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on the list of ICAOs you've chosen in the Auto-Market tab.
+1. Select the ICAO(s) you wish to search.
+    1. You can Ctrl+Click or Shift+Click to multi-select entries in the table above. You can also change your entries while the Hotkey is active.
+1. Ensure your cursor is in the ICAO edit box in the NeoFly Market tab. 
+1. When you press the hotkey (*NumpadEnter* by default, configurable in the script), it will go through each ICAO you've selected above, doing the following:
+    1. Send Ctrl+A to highlight any text in the ICAO box
+    1. Send the new ICAO name, corresponding to the first selected ICAO left in the list view above
+    1. Send the Enter key to search the Market
+    1. Remove the already-searched ICAO from the list above.
+1. Press the hotkey again, and it will do the same with the next selected ICAO.
+1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the Hotkey will be disabled.
+    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
+
 ### Close/Exit:
 1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
+1. You do not need to Disconnect from the database via the GUI.
 
 ## Known Issues:
-- Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-around covers them all.
+- Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
 ## New Issues:
 Please use the GitHub "Issues" feature to raise any bugs or problems you've come across.
 
 ## Planned Updates:
-- Randomize missions further.
+- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
+- Option to filter on Mission Type in Goods Optimizer.
+- Randomize mission generation further.
 - Add new mission types: Airline, Humanitarian, SAR, Intercept
 - Remove some of the unneccessary columns in various views; they're useful for debugging these early versions, but useless for most people.
-- Market Search (search for goods that are being sold or bought)
+- Upgrade the Auto-Market function to be a little less hands-on.
 
 ## Feature Requests:
 Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
@@ -85,6 +120,19 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 
 ## Change Log:
 
+### v0.3.0
+- Added a *Disconnect* button to the Settings page. Note: this isn't necessary in any way. Closing the program gracefully will call CloseDB(), and the DB is only kept open in ReadOnly anyways.
+- Added a rudimentary *Market Finder* to search for specific goods being bought or sold. Useful if you have a load of something you need to get rid of.
+- Added more descriptive text on screen/message boxes for handling database connection and query issues.
+- Changed the StatusBar texts to be more standard and lets you know if the script is 'doing something' (Doing something...  -->  Something done).
+- Added filters for cargo type in Optimizer.
+- Fixed date formats for most localizations, I think. Don't look at the SQL queries that are produced, it's embarrassing. This also causes the queries to be very slow. Learn to live with it.
+- Added a "Date Format" drop-down in the Settings tab. These can be set to defaults in the top of the script file.
+- Added a whole date-format-checking thing in the Settings tab. See the Instructions on how this works.
+- Changed the default Expiration in the Mission Generator. It now uses the last-generated mission in your database as the default date text when you Connect, to avoid localization conversion.
+- Added the Auto-Market search feature. Clunky but it works fine.
+- Gui tweaks
+
 ### v0.2.1
 - Fixed localization bug with *dd.mm.yyyy* formatting
 - Fixed bug where missions weren't showing up due to incorrect Pax counts
@@ -92,7 +140,7 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 ### v0.2.0
 - Added ability to sort on any numerical column properly (number based instead of text based sort).
 - Added several columns to the Aircraft Market search results for more information about the planes, including the Effective Payload stat as a more accurate representation of how much a plane will typically carry.
-- Added ability to see airborne planes in the Goods Optimizer, along with seeing plane statuses.
+- Added ability to see airborne planes in the Goods Optimizer, along with seeing plane statuses. Use the Show All checkbox. Does not show Status=5 planes (no longer in your Hangar, crashed, sold, etc)
 - Added ability to choose a Departure ICAO after choosing a plane. Changing the Departure ICAO, then clicking Refresh Missions will allow you to see markets as if the plane as shown was at that ICAO. Useful for planning ahead while in-flight when combined with the Show All hangar feature.
 - Rounded down the % fuel in the Goods Optimizer to ensure that, if using these % values to adjust the Sim values, your plane will always have enough payload to satisfy NeoFly's requirements. This is due to rounding errors and lack of precision in the % sliders in the Sim.
 - Improved Mission Generator ID generation so that it could be used as a pseudo-multiplayer (IDs are now calculated at database insertion instead of before; this should avoid ID conflicts when using separate databases to generate the same missions). Changed how generated IDs are displayed to the user.
