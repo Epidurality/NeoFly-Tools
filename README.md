@@ -5,13 +5,8 @@ Small collection of tools for use with the NeoFly career mode addon for MSFS 202
 **Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!**
 
 ### Installation:
-1a. Download the Source Code zip from the latest release. Place all source files into a single folder, anywhere you'd like. These are normal AHK scripts which can be run with AutoHotkey (https://www.autohotkey.com/download/)
-######
-1b. Alternatively, download the binary (NeoFly Tools.exe) and the SQLite3.dll files and make sure they are in the same folder. The compiled .exe is made by simply compiling the scripts using AHK's built-in compiler. It does not require an installation of AutoHotkey, and will run on its own.
-######
-In either case, make sure that "sqlite.dll" is in the same directory as your *NeoFly Tools.ahk* or *NeoFly Tools.exe*
-
-###### Note: I do not test the .exe beyond simply making sure it runs, though I don't forsee there being issues with using the .exe as this is a relatively simple set of scripts.
+1. Download the latest release folder and make sure all files are in the same folder.
+1. Configure your defaults and certain settings using the *NeoFly Tools.ini* file.
 
 ### Connecting to the Database:
 1. Go to the Settings tab
@@ -23,12 +18,10 @@ In either case, make sure that "sqlite.dll" is in the same directory as your *Ne
     1. NeoFly does not use standard SQLite formats for dates, so the dates must be converted from how they appear in the database before they can be analyzed by these Tools.
 	1. Depending on your locale, there may be separate date formats for the *Missions.expiry* field and the *GoodsMarket.refreshDate* field.
 1. In order to confirm that the dates will work correctly, select your date formats from the dropdowns.
-1. When you hit the *Check Timestamp Format* button, it will search your database for Goods Market and Mission expiration dates, and displays the 300 most recent results for each table:
-    1. *DB Value* shows the field exactly as it is in the database. This can be used to help determine your format.
-	1. *Formatted* shows the code's attempt to format the DB value, based on your chosen formats.
-	1. *Validation* is a check, where the code attempts to convert the reformatted date into a Timestamp type. If it fails to convert, INVALID will show. This indicates that the script would not be able to handle the date based on the chosen format.
+1. When you hit the *Check Timestamp Format* button, it will search your database for Goods Market and Mission expiration dates, and displays the 300 most recent results for each table as well as some validation fields to cross-check.
 1. Play with the formats until both the *Mission.Expiration* AND *GoodsMarket.RefreshDate* results no longer have any INVALID entires.
 1. If none of the available formats work for you, please use the GitHub "Issues" feature with an example of your timestamp as it shows in the *DB Value* column.
+1. After you've figured out which timestamp formats cause the script to spit out correct results, you shouldn't have to play with this again: just select the same formats every time and you should be good.
 1. Note: For the reformatting to work halfway efficiently, you may have the Seconds truncated from your timestamps. This is unlikely to be a problem, but raise an Issue if it is.
 
 ### Goods Optimizer:
@@ -47,9 +40,25 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
     1. Buy Qty is the Optimized quantity you should be purchasing at your Departure ICAO.
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. Either edit the database (see the NeoFly documents/discord for help on this), or manually adjust the values to suit.
 
+### Auto-Market Search:
+Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on the list of ICAOs you've chosen in the Auto-Market tab.
+1. Select the ICAO(s) you wish to search.
+    1. You can Ctrl+Click or Shift+Click to multi-select entries in the table above. You can also change your entries while the Hotkey is active.
+1. Ensure your cursor is in the ICAO edit box in the NeoFly Market tab. 
+1. When you press the hotkey, it will go through each ICAO you've selected above, doing the following:
+    1. Send Ctrl+A to highlight any text in the ICAO box
+    1. Send the new ICAO name, corresponding to the first selected ICAO left in the list view above
+    1. Send the Enter key to search the Market
+    1. Remove the already-searched ICAO from the list above.
+1. Press the hotkey again, and it will do the same with the next selected ICAO.
+1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the Hotkey will be disabled.
+    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
+
 ### Market Finder:
 Displays where you can find Markets selling or buying the Good you specify. Useful for finding somewhere to sell your load of goods.
 1. Enter the information about the good(s) you wish to find. The *Name* field uses a LIKE search, meaning "pho" will match with "Phone" as well as "Telephoto Lens"
+    1. By default, the Departure ICAO will be the location of the last Plane you chose from the Hanagar in the Goods Optimization page.
+	1. If you leave this blank (or the ICAO is invalid), the distance calculations will not be performed.
 1. Press the search button.
 1. First view shows the ICAOs which are BUYING those Goods from the user, second view shows the ICAOs which will SELL those Goods to the user.
 
@@ -75,23 +84,27 @@ This lets you generate custom missions for use in NeoFly.
 1. Double-click a row to commit it to the database. The row will be removed from view and the ID of the row will be added to the text below the list for reference.
 1. Search your ICAO for the new mission in NeoFly, and try it out!
 
-### Auto-Market Search:
-Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on the list of ICAOs you've chosen in the Auto-Market tab.
-1. Select the ICAO(s) you wish to search.
-    1. You can Ctrl+Click or Shift+Click to multi-select entries in the table above. You can also change your entries while the Hotkey is active.
-1. Ensure your cursor is in the ICAO edit box in the NeoFly Market tab. 
-1. When you press the hotkey (*NumpadEnter* by default, configurable in the script), it will go through each ICAO you've selected above, doing the following:
-    1. Send Ctrl+A to highlight any text in the ICAO box
-    1. Send the new ICAO name, corresponding to the first selected ICAO left in the list view above
-    1. Send the Enter key to search the Market
-    1. Remove the already-searched ICAO from the list above.
-1. Press the hotkey again, and it will do the same with the next selected ICAO.
-1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the Hotkey will be disabled.
-    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
+### Monitor Hangar:
+When enabled, will alert you via Discord Webhook when a plane returns to the Hangar and is available for use.
+1. Enable webhooks on Discord (other services are untested, but will work if they follow Discord's POST Json data format).
+    1. If you're not familiar with Discord Webhooks, google is your friend. All you need is the Webhook URL provided by your channel integration.
+1. Enter the Webhook URL into the URL field.
+    1. The default can be changed in the INI file.
+1. Press the Enable button.
+1. Your currently available (status=0) Planes will show up in the Hangar view. Any active Hired Jobs (from the rentJobs table in the database) will show up in the Hired Jobs view.
+1. Once enabled, the script will check for changes to the Hangar view once per minute. If a Plane gets added to the view, that means it must have been recently made available for use. The script will then send a message via Webhook saying which Plane(s) became available.
+1. Messages will only be sent once per status change.
 
 ### Close/Exit:
 1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
-1. You do not need to Disconnect from the database via the GUI.
+1. You do not need to Disconnect from the database via the GUI; this will be done automatically when you close the GUI/script normally.
+
+## Credits:
+1. 'AHK-Just-Me' for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
+1. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
+1. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
+1. 'Sbeuh34' for the OG mission generator and the fantastic multiplayer functionality: https://github.com/sbeuh34
+1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Known Issues:
 - Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
@@ -101,24 +114,33 @@ Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on
 Please use the GitHub "Issues" feature to raise any bugs or problems you've come across.
 
 ## Planned Updates:
-- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
-- Option to filter on Mission Type in Goods Optimizer.
-- Randomize mission generation further.
-- Add new mission types: Airline, Humanitarian, SAR, Intercept
-- Remove some of the unneccessary columns in various views; they're useful for debugging these early versions, but useless for most people.
-- Upgrade the Auto-Market function to be a little less hands-on.
-
+- Soon:
+    - Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
+	- Option to use the Monitor Hangar feature when NeoFly is closed (will use the ETA instead of looking for hangar status changes)
+- Not as soon:
+    - Randomize mission generation further.
+    - Add new mission types: Airline, Humanitarian, SAR, Intercept
+	- Remove some of the unneccessary columns in various views; they're useful for debugging these early versions, but useless for most people.
+- Maybe:
+    - Speed up the goods optimizer.
+    - Upgrade the Auto-Market function so that the user doesn't need to press the hotkey repeatedly.
+	
 ## Feature Requests:
 Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
 
-## Credits:
-1. 'AHK-Just-Me' for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
-1. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
-1. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
-1. 'Sbeuh34' for the OG mission generator and the fantastic multiplayer functionality: https://github.com/sbeuh34
-1. Basic wrench/tool icon made by Freepik from www.flaticon.com
-
 ## Change Log:
+
+### v0.4.0
+- Added filters for NeoFly missions list in Optimizer.
+- Added ability to hide the Trade/Transit missions portions of the Optimizer (helps with slower speed of queries)
+- Added an extra layer to the Timestamp validation (there's now a small bit of timestamp math so that you can confirm things are working correctly).
+- Changed from displaying the raw dates to displaying how long is left in the items's lifespan (*Time Left (hrs)* columns). This should help avoid choosing markets that are about to reset, leaving you with goods you can't sell where you expected to.
+- Slightly increased Optimizer search speed by pre-checking for a valid market at the Departure, then ignoring it as a requirement in the searches - avoids an extra convoluted date reformat.
+- Added INI file to streamline into "one release" instead of script and binary versions. Source/script version is of course still available.
+- Handled blank XP/Reward scenario in Mission Generator.
+- Removed "net zero" goods from Goods Optimizer. Will no longer show results where Profit/u is 0 or negative.
+- Added the *Hanger Monitor* which will alert you via Discord Webhook when a Plane returns to the Hangar. Also shows you the ETA of Hired missions.
+- GUI tweaks
 
 ### v0.3.0
 - Added a *Disconnect* button to the Settings page. Note: this isn't necessary in any way. Closing the program gracefully will call CloseDB(), and the DB is only kept open in ReadOnly anyways.
@@ -127,10 +149,11 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Changed the StatusBar texts to be more standard and lets you know if the script is 'doing something' (Doing something...  -->  Something done).
 - Added filters for cargo type in Optimizer.
 - Fixed date formats for most localizations, I think. Don't look at the SQL queries that are produced, it's embarrassing. This also causes the queries to be very slow. Learn to live with it.
-- Added a "Date Format" drop-down in the Settings tab. These can be set to defaults in the top of the script file.
+- Added a "Date Format" drop-down in the Settings tab.
 - Added a whole date-format-checking thing in the Settings tab. See the Instructions on how this works.
 - Changed the default Expiration in the Mission Generator. It now uses the last-generated mission in your database as the default date text when you Connect, to avoid localization conversion.
 - Added the Auto-Market search feature. Clunky but it works fine.
+- Added distance calculation to the Market Finder
 - Gui tweaks
 
 ### v0.2.1
