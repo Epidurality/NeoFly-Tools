@@ -1,8 +1,10 @@
 # NeoFly Tools
 Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
 
+[Jump to Change Log](#change-log)
+
 ## Instructions:
-**Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!**
+I've taken the time to document the procedures and nuances of the program, please take the time to read them before posting issues you're having. **Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!** 
 
 ### Installation:
 1. Download the latest release folder and make sure all files are in the same folder.
@@ -17,12 +19,11 @@ Small collection of tools for use with the NeoFly career mode addon for MSFS 202
 1. In the bottom half of the Settings tab, there is information about the Date Formats used for the NeoFly database.
     1. NeoFly does not use standard SQLite formats for dates, so the dates must be converted from how they appear in the database before they can be analyzed by these Tools.
 	1. Depending on your locale, there may be separate date formats for the *Missions.expiry* field and the *GoodsMarket.refreshDate* field.
-1. In order to confirm that the dates will work correctly, select your date formats from the dropdowns.
-1. When you hit the *Check Timestamp Format* button, it will search your database for Goods Market and Mission expiration dates, and displays the 300 most recent results for each table as well as some validation fields to cross-check.
-1. Play with the formats until both the *Mission.Expiration* AND *GoodsMarket.RefreshDate* results no longer have any INVALID entires.
-1. If none of the available formats work for you, please use the GitHub "Issues" feature with an example of your timestamp as it shows in the *DB Value* column.
-1. After you've figured out which timestamp formats cause the script to spit out correct results, you shouldn't have to play with this again: just select the same formats every time and you should be good.
-1. Note: For the reformatting to work halfway efficiently, you may have the Seconds truncated from your timestamps. This is unlikely to be a problem, but raise an Issue if it is.
+1. NeoFly Tools will automatically attempt to detect your Timestamp formats every time you connect to a database.
+    1. If the Samples from Database view appears correct (no INVALID entries), then the time format has likely been set correctly.
+    1. If none of the available formats work for you, please use the GitHub "Issues" feature with an example of your timestamp as it shows in the *DB Value* column.
+	1. It's also possible that, if you have a new/empty/nearly empty database, the automatic date detection can be erroneous (for example if you had ambiguous dates, like 12-12-2012).
+	1. If you have problems with other functions of the Tools, please **double check your dates are being formatted correctly**.
 
 ### Goods Optimizer:
 This tool is to help optimize your trading in NeoFly. It analyzes your Plane's weight, fuel, and payload, and determines which goods are able to be traded between your Departure (where the Plane currently is) and your Destination (as determined by the destination of your chosen mission).
@@ -93,6 +94,8 @@ When enabled, will alert you via Discord Webhook when a plane returns to the Han
 1. Press the Enable button.
 1. Your currently available (status=0) Planes will show up in the Hangar view. Any active Hired Jobs (from the rentJobs table in the database) will show up in the Hired Jobs view.
 1. Once enabled, the script will check for changes to the Hangar view once per minute. If a Plane gets added to the view, that means it must have been recently made available for use. The script will then send a message via Webhook saying which Plane(s) became available.
+    1. If you check the Offline Mode box, the script will not rely on the Hangar view to change. It will monitor the Hired Jobs, and send the notification when the job is expected to have expired. This means that NeoFly does not have to be open/running for the notifications to be sent.
+	1. Note: if NeoFly IS running, and you are in Offline mode, it's possible to miss the notification (since the Hired Job will be removed from the view, and unable to be checked).
 1. Messages will only be sent once per status change.
 
 ### Close/Exit:
@@ -107,6 +110,7 @@ When enabled, will alert you via Discord Webhook when a plane returns to the Han
 1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Known Issues:
+- The Timer for the *Monitor Hangar* appears to be screwing with some other functions of the tool. If you're having problems, try disabling the *Hangar Monitor* unless you're not doing anything else with the tool.
 - Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
@@ -116,19 +120,31 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 ## Planned Updates:
 - Soon:
     - Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
-	- Option to use the Monitor Hangar feature when NeoFly is closed (will use the ETA instead of looking for hangar status changes)
+	- Show a summary of your 'company' showing daily income, # missions flown, etc.
 - Not as soon:
     - Randomize mission generation further.
     - Add new mission types: Airline, Humanitarian, SAR, Intercept
 	- Remove some of the unneccessary columns in various views; they're useful for debugging these early versions, but useless for most people.
-- Maybe:
-    - Speed up the goods optimizer.
-    - Upgrade the Auto-Market function so that the user doesn't need to press the hotkey repeatedly.
+- Only a maybe:
+	- Ability to resize the GUI. AHK is not friendly to this, so don't get your hopes up.
 	
 ## Feature Requests:
 Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
 
 ## Change Log:
+
+### v0.5.0
+- Added an automatic timestamp format picker and check.
+- Added "Offline Mode" to *Hangar Monitor*
+- Fixed bugs with the *Auto-Market* thinking the list was empty
+- Added a simple check to see if the Market you've chosen in the Goods Optimizer may expire before you can reach it.
+- Added a Splash Screen on startup since startup with AutoConnect enabled now takes a moment.
+- Added a "go back to centerICAO" feature to the Auto-Market; will now re-enter your Center ICAO on the last hotkey press.
+- Renamed a whole bunch of variables to avoid cross-talk in the global scope now that there are timers and asynchronous code execution. Should avoid unexpected behaviour bugs.
+- Added functionality for multiple GUIs in the future.
+- Added a "No Reformatting" option to the timestamp formats. For those few with SQLite compatible dates in the DB, this will increase performance.
+- Filtered Optimizer to exclude goods that they no longer have any of (if you've previously cleaned them out, for instance)
+- Fixed bug with Auto-Market where ICAOs that already have markets were being displayed in some Locales
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
