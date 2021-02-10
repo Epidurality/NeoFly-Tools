@@ -621,7 +621,7 @@ Goods_RefreshHangar:
 		FROM hangar 
 		INNER JOIN 
 			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
-		INNER JOIN (
+		LEFT JOIN (
 			SELECT planeid, SUM(totalweight) AS totalCargo FROM cargo GROUP BY planeid ) AS onboardCargo ON hangar.id = onboardCargo.planeid
 		WHERE owner=%qPilotID% 
 		AND %qStatusClause%
