@@ -27,7 +27,7 @@ iconPath := A_ScriptDir . "/resources/default.ico"
 ; ==== GLOBAL VARS ====
 {
 global Pilot := {id: -1, weight: 170} ; Stores information about the current pilot
-global Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pax: -1, cruiseSpeed: -1, location: "unknown"} ; Stores information about the selected Hangar plane
+global Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pax: -1, cruiseSpeed: -1, location: "unknown", onboardCargo: 0} ; Stores information about the selected Hangar plane
 global DB := new SQLiteDB ; SQLite database connection object
 global marketRefreshHours := 24 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
 global fuelPercentForAircraftMarketPayload := 0.40 ; Percent (as decimal) of fuel to be used in the Effective Payload calculation, only in the Aircraft Market tab results.
@@ -123,16 +123,24 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 ; GUI Goods Optimizer tab
 {
 	Gui, Tab, Goods Optimizer
-	Gui, Add, Text, xm+10 y70 w50 h25, Departure ICAO:
-	Gui, Add, Edit, x+10 wp hp vGoods_DepartureICAO,
-	Gui, Add, Text, R2 x+20 wp hp, Arrival ICAO:
-	Gui, Add, Edit, x+10 wp hp Disabled vGoods_ArrivalICAO, ---
-	Gui, Add, Text, R2 x+20 wp hp, Mission Weight:
-	Gui, Add, Edit, x+10 wp hp Disabled vGoods_MissionWeight, ---
-	Gui, Add, Text, R2 x+20 wp hp, Goods Weight:
-	Gui, Add, Edit, x+10 wp hp Disabled vGoods_GoodsWeight, ---
+	Gui, Add, Text, xm+10 R2 y70, Departure`nICAO:
+	Gui, Add, Edit, x+5 w50 h25 vGoods_DepartureICAO,
+	Gui, Add, Text, R2 x+20, Arrival`nICAO:
+	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_ArrivalICAO, ---
+	Gui, Add, Text, R2 x+20, Mission`nWeight (lbs):
+	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_MissionWeight, ---
+	Gui, Add, Text, R2 x+20, New`nGoods (lbs):
+	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_GoodsWeight, ---
+	Gui, Add, Text, R2 x+20, Onboard`nGoods (lbs):
+	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_OnboardCargo, ---
+	
+	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
+	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All
+	Gui, Add, Text, xm+350 y+10 w300 vGoods_Hangar, Hangar:
+	Gui, Add, Checkbox, x+10 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
+	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
-	Gui, Add, Text, xm+20 y+20 w50 h15, Aircraft:
+	Gui, Add, Text, xm+20 y130 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
 	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
 	Gui, Add, Text, x+10 w250 hp vGoods_FuelInfo, ---
@@ -141,11 +149,6 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Text, xm+20 y+10 w50 hp, Mission:
 	Gui, Add, Text, x+10 w250 hp vGoods_MissionInfo, ---
 
-	Gui, Add, Button, xm+600 y70 w150 gGoods_RefreshHangar, Refresh Hangar
-	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All
-	Gui, Add, Text, xm+600 y+10 w300 vGoods_Hangar, Hangar:
-	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
-	
 	Gui, Add, Text, xm+150 y+10, Arrival Requirements:
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalILS, ILS
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalApproach, Approach
@@ -613,8 +616,13 @@ Goods_RefreshHangar:
 			hangar.currentFuel AS Fuel,
 			aircraftdata.FuelCaplbs AS [Max Fuel],
 			hangar.Qualification,
-			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)]
-		FROM hangar INNER JOIN aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
+			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)],
+			onboardCargo.totalCargo AS [Onboard Cargo (lbs)]
+		FROM hangar 
+		INNER JOIN 
+			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
+		INNER JOIN (
+			SELECT planeid, SUM(totalweight) AS totalCargo FROM cargo GROUP BY planeid ) AS onboardCargo ON hangar.id = onboardCargo.planeid
 		WHERE owner=%qPilotID% 
 		AND %qStatusClause%
 		ORDER BY hangar.id
@@ -634,6 +642,7 @@ Goods_HangarLVClick:
 			return
 		}
 		Gui, Main:Default
+		GuiControlGet, Goods_IgnoreOnboardCargo
 		; Load the Plane info into the global vars for other things to use
 		Gui, ListView, Goods_HangarLV
 		LV_GetText(lvID, A_EventInfo, 1)
@@ -644,6 +653,7 @@ Goods_HangarLVClick:
 		LV_GetText(lvFuel, A_EventInfo, 9)	
 		LV_GetText(lvMaxFuel, A_EventInfo, 10)
 		LV_GetText(lvCruiseSpeed, A_EventInfo, 12)
+		LV_GetText(lvOnboardCargo, A_EventInfo, 13)
 		Plane.id := lvId
 		Plane.name := lvName
 		Plane.payload := lvPayload
@@ -652,8 +662,14 @@ Goods_HangarLVClick:
 		Plane.fuel := lvFuel
 		Plane.maxFuel := lvMaxFuel
 		Plane.cruiseSpeed := lvCruiseSpeed
+		If (Goods_IgnoreOnboardCargo) { ; Being lazy here and using the checkbox to simply set onboard cargo to 0.
+			Plane.onboardCargo := 0
+		} else {
+			Plane.onboardCargo := lvOnboardCargo
+		}
+		GuiControl, , Goods_OnboardCargo, % Plane.onboardCargo
 		GuiControl, , Goods_PlaneInfo, % Plane.name . " (ID#" . Plane.id . ")"
-		GuiControl, , Goods_PayloadInfo, Choose mission
+		GuiControl, , Goods_PayloadInfo, % "Double-click a mission"
 		GuiControl, , Goods_FuelInfo, % Plane.fuel . " / " . Plane.maxFuel . "lbs (" . FLOOR(Plane.fuel*100/Plane.maxFuel) . "%)"
 		GuiControl, , Goods_MissionInfo, Choose mission
 		GuiControl, , Goods_DepartureICAO, % Plane.location
@@ -745,7 +761,7 @@ Goods_RefreshMissions:
 		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
 		return
 	}
-	qPayload := Plane.payload - Plane.fuel - Pilot.weight
+	qPayload := Plane.payload - Plane.fuel - Pilot.weight - Plane.onboardCargo ; This is effectively what space the plane has left to work with to stay under 100% Sim payload.
 	qPax := Plane.pax
 	; Get NeoFly missions
 	GuiControl, , Goods_MissionsText, % "Looking for missions..."
@@ -842,7 +858,7 @@ Goods_RefreshMissions:
 				return
 			}
 			totalProfit := 0
-			availablePayload := Plane.payload - Plane.fuel - qCargo - Pilot.weight
+			availablePayload := Plane.payload - Plane.fuel - qCargo - Pilot.weight - Plane.onboardCargo
 			Loop % NFMissionsGoodsResult.RowCount {
 				NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
 				maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
@@ -1165,7 +1181,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
-	availablePayload := Plane.payload - Plane.fuel- Goods_MissionWeight - Pilot.weight
+	availablePayload := Plane.payload - Plane.fuel- Goods_MissionWeight - Pilot.weight - Plane.onboardCargo
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
 	OptimalResult.ColumnNames[12] := "Profit"

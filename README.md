@@ -119,7 +119,8 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 
 ## Planned Updates:
 - Soon:
-    - Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
+    - Include existing goods which are already on the plane into the Optimizer.
+	- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
 	- Show a summary of your 'company' showing daily income, # missions flown, etc.
 - Not as soon:
     - Randomize mission generation further.
@@ -145,6 +146,7 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Added a "No Reformatting" option to the timestamp formats. For those few with SQLite compatible dates in the DB, this will increase performance.
 - Filtered Optimizer to exclude goods that they no longer have any of (if you've previously cleaned them out, for instance)
 - Fixed bug with Auto-Market where ICAOs that already have markets were being displayed in some Locales
+- Added existing goods to plane weight calculation and sim payload numbers. Useful if you've already loaded some stuff and lose track, or if you're taking off with goods leftover etc.
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
