@@ -90,6 +90,15 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Splash:Show, h150 w300, NeoFly Tools
 }
 
+; Context menus
+{
+	Menu, MissionsContextMenu, Add, Use As Departure, MissionsContext_UseAsDeparture
+	Menu, MissionsContextmenu, Add, Market Finder, MissionsContext_MarketFinder
+	
+	Menu, TradeMissionsContextMenu, Add, Use As Departure, TradeMissionsContext_UseAsDeparture
+	Menu, TradeMissionsContextMenu, Add, Market Finder, TradeMissionsContext_MarketFinder
+}
+
 ; GUI Settings tab
 {
 	Gui, Main:Default
@@ -168,11 +177,11 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
 	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions (slower)
-	Gui, Add, ListView, xm+10 y+10 w915 h125 Grid vGoods_MissionsLV gGoods_MissionsLVClick
+	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick
 
 	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
 	Gui, Add, Text, x+5 w500 vGoods_TradeMissionsText, 
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick
+	Gui, Add, ListView, xm+10 y+10 w915 h100 Count500 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick
 
 	Gui, Add, Text, xm+10 y+10 vGoods_Trades, Optimal Goods:
 	Gui, Add, Text, x+5 w300 vGoods_OptimalGoodsText,
@@ -228,8 +237,10 @@ You can change the Hotkey from {%autoMarketHotkey%} to whatever you'd like by mo
 	Gui, Add, Text, x+20 yp+5, I want to
 	Gui, Add, Radio, x+10 yp-5 vMarket_RadioBuy, Buy
 	Gui, Add, Radio, y+10 Checked vMarket_RadioSell, Sell
-	Gui, Add, Text, x+40 y+-30 w100, Show`nDistance From:
+	Gui, Add, Text, x+40 y+-30, Show`nDistance From:
 	Gui, Add, Edit, x+10 w75 vMarket_DepartureICAO, KJFK
+	Gui, Add, Text, x+20, Show Goods`nOnly At:
+	Gui, Add, Edit, x+10 w75 vMarket_FilterICAO,
 
 	Gui, Add, Text, xm+10 y+10 w300, Leave the Name field blank to search for goods of any name.
 
@@ -244,6 +255,7 @@ You can change the Hotkey from {%autoMarketHotkey%} to whatever you'd like by mo
 	Gui, Add, Text, x+30 w50, Maximum Price:
 	Gui, Add, Edit, x+10 w50 vMarket_MaximumPrice, 9999
 	Gui, Add, Button, x+100 w100 gMarket_Search, Search
+	
 
 	Gui, Add, Text, xm+10 y+10, Markets:
 	Gui, Add, Text, x+10 w500 vMarket_MarketsText, Press Search to display relevant markets
@@ -400,6 +412,31 @@ HideTool:
 	return
 }
 
+MainGuiContextMenu:
+{
+	Switch A_GuiControl
+	{
+		Case "Goods_MissionsLV":
+			Gui, Main:Default
+			Gui, ListView, Goods_MissionsLV
+			LV_GetText(lvContent, LV_GetNext(), 1)
+			If (lvContent<>"") { ; Only if the list view has a valid selected row...
+				Menu, MissionsContextMenu, Show, %A_GuiX%, %A_GuiY%
+			}
+			return
+		Case "Goods_TradeMissionsLV":
+			Gui, Main:Default
+			Gui, ListView, Goods_TradeMissionsLV
+			LV_GetText(lvContent, LV_GetNext(), 1)
+			If (lvContent<>"") { ; Only if the list view has a valid selected row...
+				Menu, TradeMissionsContextMenu, Show, %A_GuiX%, %A_GuiY%
+			}
+			return
+		Default:
+			return
+	}
+	return
+}
 ; ==== SUBROUTINES =====
 
 ; == Settings Tab Subroutines ==
@@ -599,7 +636,8 @@ Goods_RefreshHangar:
 	hangarQuery = 
 	(
 		SELECT 
-			hangar.id, 
+			hangar.id AS ID,
+			hangar.tailNumber AS Tail,
 			hangar.Aircraft, 
 			CASE hangar.status
 				WHEN 0 THEN 'Available'
@@ -617,7 +655,7 @@ Goods_RefreshHangar:
 			aircraftdata.FuelCaplbs AS [Max Fuel],
 			hangar.Qualification,
 			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)],
-			onboardCargo.totalCargo AS [Onboard Cargo (lbs)]
+			IFNULL(onboardCargo.totalCargo,0) AS [Onboard Cargo (lbs)]
 		FROM hangar 
 		INNER JOIN 
 			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
@@ -646,23 +684,24 @@ Goods_HangarLVClick:
 		; Load the Plane info into the global vars for other things to use
 		Gui, ListView, Goods_HangarLV
 		LV_GetText(lvID, A_EventInfo, 1)
-		LV_GetText(lvName, A_EventInfo, 2)
-		LV_GetText(lvPayload, A_EventInfo, 4)
-		LV_GetText(lvPax, A_EventInfo, 5)
-		LV_GetText(lvLocation, A_EventInfo, 6)
-		LV_GetText(lvFuel, A_EventInfo, 9)	
-		LV_GetText(lvMaxFuel, A_EventInfo, 10)
-		LV_GetText(lvCruiseSpeed, A_EventInfo, 12)
-		LV_GetText(lvOnboardCargo, A_EventInfo, 13)
+		LV_GetText(lvTailNum, A_EventInfo, 2)
+		LV_GetText(lvName, A_EventInfo, 3)
+		LV_GetText(lvPayload, A_EventInfo, 5)
+		LV_GetText(lvPax, A_EventInfo, 6)
+		LV_GetText(lvLocation, A_EventInfo, 7)
+		LV_GetText(lvFuel, A_EventInfo, 10)	
+		LV_GetText(lvMaxFuel, A_EventInfo, 11)
+		LV_GetText(lvCruiseSpeed, A_EventInfo, 13)
+		LV_GetText(lvOnboardCargo, A_EventInfo, 14)
 		Plane.id := lvId
-		Plane.name := lvName
+		Plane.name := lvName . " " . lvTailNum
 		Plane.payload := lvPayload
 		Plane.pax := lvPax
 		Plane.location := lvLocation
 		Plane.fuel := lvFuel
 		Plane.maxFuel := lvMaxFuel
 		Plane.cruiseSpeed := lvCruiseSpeed
-		If (Goods_IgnoreOnboardCargo || lvOnboardCargo = "") { ; if the checkbox is set or the onboardCargo result is blank (no cargo entries)...
+		If (Goods_IgnoreOnboardCargo) { ; if the checkbox is set or the onboardCargo result is blank (no cargo entries)...
 			Plane.onboardCargo := 0
 		} else {
 			Plane.onboardCargo := lvOnboardCargo
@@ -693,7 +732,7 @@ Goods_RefreshMissions:
 	GuiControl, , Goods_GoodsWeight, ---
 	GuiControl, , Goods_MissionsText
 	GuiControl, , Goods_TradeMissionsText
-	GuiControl, , Goods_OptimalGoodsText, Double-Click a Mission/Trade Mission to see Optimal Goods to bring
+	GuiControl, , Goods_OptimalGoodsText, Double-Click a Mission/Trade Mission
 	GuiControl, , Goods_WarningText
 	GuiControlGet, Goods_DepartureICAO
 	GuiControlGet, Goods_IncludeIllicit
@@ -1035,6 +1074,31 @@ Goods_RefreshMissions:
 	return
 }
 
+MissionsContext_UseAsDeparture:
+{
+	Gui, Main:Default
+	Gui, ListView, Goods_MissionsLV
+	LV_GetText(lvArrival, LV_GetNext(), 3)
+	If (lvArrival<>"") {
+		GuiControl, Text, Goods_DepartureICAO, % lvArrival
+		GoSub Goods_RefreshMissions
+	}
+	return
+}
+
+MissionsContext_MarketFinder:
+{
+	Gui, Main:Default
+	Gui, ListView, Goods_MissionsLV
+	LV_GetText(lvArrival, LV_GetNext(), 3)
+	If (lvArrival<>"") {
+		GuiControl, Text, Market_FilterICAO, % lvArrival
+		GuiControl, Choose, GUI_Tabs, Market Finder
+		GoSub Market_Search
+	}
+	return
+}
+
 Goods_MissionsLVClick:
 {
 	if (A_GuiEvent = "DoubleClick") {
@@ -1058,6 +1122,32 @@ Goods_MissionsLVClick:
 		GuiControl, , Goods_ArrivalICAO, % lvArrival
 		GuiControl, , Goods_MissionInfo, % lvDeparture . ">" . lvArrival . " - " . lvMissionType
 		GoSub Goods_RefreshMarket
+	}
+	return
+}
+
+TradeMissionsContext_UseAsDeparture:
+{
+	Gui, Main:Default
+	Gui, ListView, TradeMissionsLV
+	LV_GetText(lvArrival, LV_GetNext(), 2)
+	If (lvArrival<>"") {
+		Gui, Tab, Market Finder
+		GuiControl, Text, Goods_DepartureICAO, % lvArrival
+		GoSub Goods_RefreshMissions
+	}
+	return
+}
+
+TradeMissionsContext_MarketFinder:
+{
+	Gui, Main:Default
+	Gui, ListView, TradeMissionsLV
+	LV_GetText(lvArrival, LV_GetNext(), 2)
+	If (lvArrival<>"") {
+		GuiControl, Text, Market_FilterICAO, % lvArrival
+		GuiControl, Choose, GUI_Tabs, Market Finder
+		GoSub Market_Search
 	}
 	return
 }
@@ -1338,6 +1428,7 @@ Market_Search:
 	GuiControlGet, Market_MinimumPrice
 	GuiControlGet, Market_MaximumPrice
 	GuiControlGet, Market_DepartureICAO
+	GuiControlGet, Market_FilterICAO
 	GuiControlGet, Settings_GoodsDateFormat
 	qTypeConditions := ""
 	If (Market_Normal=1) {
@@ -1362,6 +1453,7 @@ Market_Search:
 	} Else {
 		qTradeType := 0
 	}
+	
 	; Get the list of markets
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	MarketFinderQuery =
@@ -1398,6 +1490,7 @@ Market_Search:
 		INNER JOIN airport AS a ON a.ident=gm.location
 		WHERE
 			gm.name LIKE '`%%Market_Name%`%'
+			AND gm.location LIKE '`%%Market_FilterICAO%`%'
 			AND [Time Left (hrs)] > 0
 			AND (%qTypeConditions%)
 			AND gm.tradetype = %qTradeType%
@@ -1847,7 +1940,8 @@ Monitor_Check:
 					WHEN 5 THEN 'Removed'
 					ELSE 'Unknown'
 				END AS Status,
-				hangar.Location
+				hangar.Location,
+				hangar.tailNumber AS Tail
 			FROM hangar
 			WHERE owner=%qPilotID%
 			AND hangar.status = 0
@@ -1871,7 +1965,7 @@ Monitor_Check:
 					}
 				}
 				If !(planeIsOld) { ; Plane wasn't found in the table, must be new.
-					postMessage := MonitorHangarRow[2] . " (#" . MonitorHangarRow[1] . ") is now " . MonitorHangarRow[3] . " at " . MonitorHangarRow[4]
+					postMessage := MonitorHangarRow[2] . " " . MonitorHangarRow[5] " (#" . MonitorHangarRow[1] . ") is now " . MonitorHangarRow[3] . " at " . MonitorHangarRow[4]
 					postdata =
 					(
 					{
@@ -1909,7 +2003,8 @@ Monitor_Check:
 			rj.distance AS Distance,
 			rj.speed AS Speed,
 			DATETIME(JULIANDAY(%qDateStart%) + (1.0*rj.distance/rj.speed/24.0)) AS [ETA],
-			ROUND(24.0*60.0*(JULIANDAY(%qDateStart%) + (1.0*rj.distance/rj.speed/24.0) - JULIANDAY('now', 'localtime')), 2) AS [Est. Time Remaining (mins)]
+			ROUND(24.0*60.0*(JULIANDAY(%qDateStart%) + (1.0*rj.distance/rj.speed/24.0) - JULIANDAY('now', 'localtime')), 2) AS [Est. Time Remaining (mins)],
+			h.tailNumber AS Tail
 		FROM rentJob AS rj
 		INNER JOIN hangar AS h ON h.id=rj.aircraftID
 		WHERE h.owner=%qPilotID%
@@ -1930,7 +2025,7 @@ Monitor_Check:
 				If (MonitorHiredRow[1] = oldID) { ; This is the same job
 					LV_GetText(oldTR, A_Index, 11)
 					If (MonitorHiredRow[11]<=0 && oldTR>0) { ; Job has transitioned from time remaining to time elapsed
-						postMessage := MonitorHiredRow[6] . " should be at " . MonitorHiredRow[5] . " with the " . MonitorHiredRow[2] . " (#" . MonitorHiredRow[1] . ")"
+						postMessage := MonitorHiredRow[6] . " should be at " . MonitorHiredRow[5] . " with the " . MonitorHiredRow[2] . " " . MonitorHiredRow[12] " (#" . MonitorHiredRow[1] . ")"
 						postdata =
 						(
 						{

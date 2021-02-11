@@ -9,6 +9,7 @@ I've taken the time to document the procedures and nuances of the program, pleas
 ### Installation:
 1. Download the latest release folder and make sure all files are in the same folder.
 1. Configure your defaults and certain settings using the *NeoFly Tools.ini* file.
+1. Requires NeoFly 2.12 or later
 
 ### Connecting to the Database:
 1. Go to the Settings tab
@@ -119,7 +120,7 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 
 ## Planned Updates:
 - Soon:
-    - Include existing goods which are already on the plane into the Optimizer.
+    - Show warning for when the Optimizer does not have current Hangar info
 	- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
 	- Show a summary of your 'company' showing daily income, # missions flown, etc.
 - Not as soon:
@@ -147,6 +148,9 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Filtered Optimizer to exclude goods that they no longer have any of (if you've previously cleaned them out, for instance)
 - Fixed bug with Auto-Market where ICAOs that already have markets were being displayed in some Locales
 - Added existing goods to plane weight calculation and sim payload numbers. Useful if you've already loaded some stuff and lose track, or if you're taking off with goods leftover etc.
+- Added the new TailNumber feature to views and some information text. This means that NeoFly 2.12+ is required so that tailNumber is populated in the database.
+- Optimized loading of Goods Optimizer list views slightly - should improve performance.
+- Added Right-Click menu to Optimizer mission views for some QoL quick functions.
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
