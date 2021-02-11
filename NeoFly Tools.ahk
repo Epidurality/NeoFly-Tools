@@ -662,7 +662,7 @@ Goods_HangarLVClick:
 		Plane.fuel := lvFuel
 		Plane.maxFuel := lvMaxFuel
 		Plane.cruiseSpeed := lvCruiseSpeed
-		If (Goods_IgnoreOnboardCargo) { ; Being lazy here and using the checkbox to simply set onboard cargo to 0.
+		If (Goods_IgnoreOnboardCargo || lvOnboardCargo = "") { ; if the checkbox is set or the onboardCargo result is blank (no cargo entries)...
 			Plane.onboardCargo := 0
 		} else {
 			Plane.onboardCargo := lvOnboardCargo
