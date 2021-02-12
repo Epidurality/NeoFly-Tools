@@ -1070,6 +1070,7 @@ Goods_RefreshMissions:
 			GuiControl, +ReDraw, Goods_TradeMissionsLV
 		}
 	}
+	GoSub Goods_CheckHangar
 	SB_SetText("Missions refreshed")
 	return
 }
@@ -1292,6 +1293,7 @@ Goods_RefreshMarket:
 	GuiControl, , Goods_GoodsWeight, % ROUND(goodsWeight,0)
 	GuiControl, Text, Goods_OptimalGoodsText, % "Displaying " . OptimalResult.RowCount . " viable goods"
 	LV_ShowTable(OptimalResult, "Goods_TradesLV")
+	GoSub Goods_CheckHangar
 	SB_SetText("Optimal goods refreshed")
 	return
 }
@@ -1314,6 +1316,33 @@ Goods_ToggleTradeMissions:
 	return
 }
 
+Goods_CheckHangar:
+{
+	Gui, Main:Default
+	 ;Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pax: -1, cruiseSpeed: -1, location: "unknown", onboardCargo: 0}
+	qPlaneID := Plane.id
+	CheckHangarQuery = 
+	(
+		SELECT 
+			hangar.id AS ID,
+			hangar.Location AS Location,
+			hangar.currentFuel AS Fuel,
+			IFNULL(onboardCargo.totalCargo,0) AS [Onboard Cargo (lbs)]
+		FROM hangar 
+		LEFT JOIN (
+			SELECT planeid, SUM(totalweight) AS totalCargo FROM cargo GROUP BY planeid ) AS onboardCargo ON hangar.id = onboardCargo.planeid 
+		WHERE ID=%qPlaneID%
+		ORDER BY ID 
+		LIMIT 1
+	)
+	If !(CheckHangarResult := SQLiteGetTable(DB, CheckHangarQuery)) {
+		return
+	}
+	CheckHangarResult.GetRow(1, CheckHangarRow)
+	If (Plane.id != CheckHangarRow[1] || Plane.location != CheckHangarRow[2] || Plane.fuel != CheckHangarRow[3] || Plane.onboardCargo != CheckHangarRow[4]) {
+		GuiControl, Text, Goods_WarningText, Change detected with chosen plane! Refresh the Hangar.
+	}
+}
 ; == Auto-Market tab Subroutines ==
 Auto_List:
 {

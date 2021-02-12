@@ -46,6 +46,8 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on the list of ICAOs you've chosen in the Auto-Market tab.
 1. Select the ICAO(s) you wish to search.
     1. You can Ctrl+Click or Shift+Click to multi-select entries in the table above. You can also change your entries while the Hotkey is active.
+1. Press *Load for Entry*.
+    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
 1. Ensure your cursor is in the ICAO edit box in the NeoFly Market tab. 
 1. When you press the hotkey, it will go through each ICAO you've selected above, doing the following:
     1. Send Ctrl+A to highlight any text in the ICAO box
@@ -54,7 +56,6 @@ Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on
     1. Remove the already-searched ICAO from the list above.
 1. Press the hotkey again, and it will do the same with the next selected ICAO.
 1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the Hotkey will be disabled.
-    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
 
 ### Market Finder:
 Displays where you can find Markets selling or buying the Good you specify. Useful for finding somewhere to sell your load of goods.
@@ -62,7 +63,6 @@ Displays where you can find Markets selling or buying the Good you specify. Usef
     1. By default, the Departure ICAO will be the location of the last Plane you chose from the Hanagar in the Goods Optimization page.
 	1. If you leave this blank (or the ICAO is invalid), the distance calculations will not be performed.
 1. Press the search button.
-1. First view shows the ICAOs which are BUYING those Goods from the user, second view shows the ICAOs which will SELL those Goods to the user.
 
 ### Aircraft Market:
 This tool searches the AircraftMarket table for available Planes for sale. It displays the prices and (approximate) distance to the airport selling the plane. It also estimates your ONE-WAY travel cost of paying to bring your Pilot to the airport selling the plane.
@@ -94,24 +94,23 @@ When enabled, will alert you via Discord Webhook when a plane returns to the Han
     1. The default can be changed in the INI file.
 1. Press the Enable button.
 1. Your currently available (status=0) Planes will show up in the Hangar view. Any active Hired Jobs (from the rentJobs table in the database) will show up in the Hired Jobs view.
-1. Once enabled, the script will check for changes to the Hangar view once per minute. If a Plane gets added to the view, that means it must have been recently made available for use. The script will then send a message via Webhook saying which Plane(s) became available.
+1. Once enabled, the script will check for changes to the Hangar view at the Refresh Interval. If a Plane gets added to the view, that means it must have been recently made available for use. The script will then send a message via Webhook saying which Plane(s) became available.
     1. If you check the Offline Mode box, the script will not rely on the Hangar view to change. It will monitor the Hired Jobs, and send the notification when the job is expected to have expired. This means that NeoFly does not have to be open/running for the notifications to be sent.
 	1. Note: if NeoFly IS running, and you are in Offline mode, it's possible to miss the notification (since the Hired Job will be removed from the view, and unable to be checked).
 1. Messages will only be sent once per status change.
 
 ### Close/Exit:
-1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
+1. Either right-click the script's icon in your taskbar and click "Exit", or simply close the GUI window via the normal Close "X" button.
 1. You do not need to Disconnect from the database via the GUI; this will be done automatically when you close the GUI/script normally.
 
 ## Credits:
 1. 'AHK-Just-Me' for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
 1. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
 1. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
-1. 'Sbeuh34' for the OG mission generator and the fantastic multiplayer functionality: https://github.com/sbeuh34
+1. 'Sbeuh34' for the OG mission generator and the multiplayer functionality: https://github.com/sbeuh34
 1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Known Issues:
-- The Timer for the *Monitor Hangar* appears to be screwing with some other functions of the tool. If you're having problems, try disabling the *Hangar Monitor* unless you're not doing anything else with the tool.
 - Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
@@ -120,7 +119,6 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 
 ## Planned Updates:
 - Soon:
-    - Show warning for when the Optimizer does not have current Hangar info
 	- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
 	- Show a summary of your 'company' showing daily income, # missions flown, etc.
 - Not as soon:
@@ -151,6 +149,7 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Added the new TailNumber feature to views and some information text. This means that NeoFly 2.12+ is required so that tailNumber is populated in the database.
 - Optimized loading of Goods Optimizer list views slightly - should improve performance.
 - Added Right-Click menu to Optimizer mission views for some QoL quick functions.
+- Added a warning when the user refreshes missions/optimal goods when the plane selected has changed critical parameters (fuel, onboard cargo, location, availability).
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
