@@ -146,8 +146,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
-	Gui, Add, CheckBox, x+200 vGoods_AllowOverweight gGoods_RefreshHangar, Allow Overweight
-	Gui, Add, Checkbox, x+20 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
+	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
 	Gui, Add, Text, xm+20 y130 w50 h15, Aircraft:
@@ -160,20 +159,23 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Text, x+10 w250 hp vGoods_MissionInfo, ---
 
 	Gui, Add, Text, xm+150 y+10, Arrival Requirements:
-	Gui, Add, Checkbox, x+20 vGoods_ArrivalILS, ILS
-	Gui, Add, Checkbox, x+20 vGoods_ArrivalApproach, Approach
-	Gui, Add, Checkbox, x+20 vGoods_ArrivalLights, Rwy Lights
-	Gui, Add, Checkbox, x+20 vGoods_ArrivalVASI, VASI/PAPI
-	Gui, Add, Checkbox, x+20 vGoods_ArrivalHard, Hard Rwy
+	Gui, Add, Checkbox, x+20 vGoods_ArrivalILS gGoods_RefreshMissions, ILS
+	Gui, Add, Checkbox, x+20 vGoods_ArrivalApproach gGoods_RefreshMissions, Approach
+	Gui, Add, Checkbox, x+20 vGoods_ArrivalLights gGoods_RefreshMissions, Rwy Lights
+	Gui, Add, Checkbox, x+20 vGoods_ArrivalVASI gGoods_RefreshMissions, VASI/PAPI
+	Gui, Add, Checkbox, x+20 vGoods_ArrivalHard gGoods_RefreshMissions, Hard Rwy
 	Gui, Add, Text, x+20, Min Rwy Len.
-	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen, 1000
+	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen gGoods_RefreshMissions, 1000
 
-	Gui, Add, Button, xm+10 y+10 gGoods_RefreshMissions, Refresh Missions
+	Gui, Add, Button, xm+10 y+0 gGoods_RefreshMissions, Refresh Missions
 	Gui, Add, Text, x+20, Goods Filters:
-	Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit, Illicit
-	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked, Fragile
-	Gui, Add, Checkbox, x+20 vGoods_IncludePerishable Checked, Perishable
-	Gui, Add, Checkbox, x+20 vGoods_IncludeNormal Checked, Normal
+	Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit gGoods_RefreshMissions, Illicit
+	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked gGoods_RefreshMissions, Fragile
+	Gui, Add, Checkbox, x+20 vGoods_IncludePerishable Checked gGoods_RefreshMissions, Perishable
+	Gui, Add, Checkbox, x+20 vGoods_IncludeNormal Checked gGoods_RefreshMissions, Normal
+	Gui, Add, CheckBox, x+40 vGoods_AllowOverweight gGoods_ChangeOverweight, Allow Overweight of:
+	Gui, Add, Edit, x+5 vGoods_MaxOverweight gGoods_ChangeOverweight w80 h20 Disabled, 999999
+	Gui, Add, Text, x+0, lbs
 	
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
@@ -721,6 +723,19 @@ Goods_HangarLVClick:
 	return
 }
 
+Goods_ChangeOverweight:
+{
+	Gui, Main:Default
+	GuiControlGet, Goods_AllowOverweight
+	If (Goods_AllowOverweight) {
+		GuiControl, Enable, Goods_MaxOverweight
+	} else {
+		GuiControl, Disable, Goods_MaxOverweight
+	}
+	GoSub Goods_RefreshMissions
+	return
+}
+
 Goods_RefreshMissions:
 {
 	Gui, Main:Default
@@ -750,6 +765,7 @@ Goods_RefreshMissions:
 	GuiControlGet, Settings_GoodsDateFormat
 	GuiControlGet, Goods_ShowTradeMissions
 	GuicontrolGet, Goods_AllowOverweight
+	GuiControlGet, Goods_MaxOverweight
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	validMarketQuery = 
@@ -802,7 +818,10 @@ Goods_RefreshMissions:
 		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
 		return
 	}
-	qPayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - Pilot.weight - Plane.onboardCargo ; This is effectively what space the plane has left to work with to stay under 100% Sim payload. If "Allow Overweight" is checked, it ignores the fuel weight.
+	qPayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo
+	If (qPayload<200) {
+		GuiControl, Text, Goods_WarningText, % "Available plane payload is only " . qPayload . "lbs, and may limit search results."
+	}
 	qPax := Plane.pax
 	; Get NeoFly missions
 	GuiControl, , Goods_MissionsText, % "Looking for missions..."
@@ -867,7 +886,7 @@ Goods_RefreshMissions:
 		If !(NFMissionsCheckResult.RowCount) {
 			GuiControl, , Goods_MissionsText, % "Could not find any missions at '" . Goods_DepartureICAO . "', try Reset in NeoFly Missions tab."
 		} else {
-			GuiControl, , Goods_MissionsText, % "Found " . NFMissionsCheckResult.RowCount . " missions at '" . Goods_DepartureICAO . "'. None match Plane/Criteria."
+			GuiControl, , Goods_MissionsText, % "Found current missions at '" . Goods_DepartureICAO . "', but either aren't viable or don't have markets at destinations."
 		}
 		SB_SetText("No viable NeoFly Missions found")
 	} else {
@@ -878,7 +897,7 @@ Goods_RefreshMissions:
 			NFMissionsResult.Next(NFMissionsRow)
 			qDeparture := NFMissionsRow[2]
 			qArrival := NFMissionsRow[3]
-			qCargo := NFMissionsRow[6]
+			qMissionCargo := NFMissionsRow[6]
 			qPay := NFMissionsRow[7]
 			NFMissionsGoodsQuery = 
 			(
@@ -910,7 +929,7 @@ Goods_RefreshMissions:
 				return
 			}
 			totalProfit := 0
-			availablePayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - qCargo - Pilot.weight - Plane.onboardCargo
+			availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-qMissionCargo
 			Loop % NFMissionsGoodsResult.RowCount {
 				NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
 				maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
@@ -1054,7 +1073,7 @@ Goods_RefreshMissions:
 					return
 				}
 				totalProfit := 0
-				availablePayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - Pilot.weight
+				availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo
 				Loop % TradesGoodsResult.RowCount {
 					TradesGoodsResult.Next(TradesGoodsRow)
 					maxQty := FLOOR(MIN(TradesGoodsRow[4], availablePayload/TradesGoodsRow[2]))
@@ -1205,6 +1224,7 @@ Goods_RefreshMarket:
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	GuiControlGet, Goods_AllowOverweight
+	GuiControlGet, Goods_MaxOverweight
 	goodsChecked := 0
 	If (Goods_IncludeIllicit) {
 		qIllicit := "!= -1"
@@ -1286,7 +1306,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
-	availablePayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - Goods_MissionWeight - Pilot.weight - Plane.onboardCargo
+	availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
 	OptimalResult.ColumnNames[12] := "Profit"
@@ -2319,4 +2339,3 @@ Webhook_PostSend(url, postdata) {
 		MsgBox % "Could not send webhook.`n`nError:`n" . e
 	}
 }
-

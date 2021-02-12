@@ -38,7 +38,8 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 1. The Trade Profit takes into account your on-board fuel, payload capacity, etc to determine how many goods you're able to bring with you on the flight.
     1. The Optimizer does NOT take range into account for analyzing your plane's viability for the mission. Make sure you have enough fuel to go the distance!
 	1. If you make changes to your fuel levels in NeoFly, refresh the Hangar!
-	1. If you select *Allow Overweight*, the Optimizer will take advantage of the fact that NeoFly does not subtract the Fuel weight from the Max Payload of Planes. You can effectively overweight any Plane by the max fuel weight.
+	1. If you select *Allow Overweight*, the Optimizer will take advantage of the fact that NeoFly does not subtract the Fuel weight from the Max Payload of Planes. You can effectively overweight any Plane by up to the current fuel weight.
+	    1. Script will use whichever is lower: the maximum weight allowed by NeoFly to start the mission, or the custom overweight amount you enter in the field. All results should still be viable flights in NeoFly, even if MSFS shows you're overloaded.
 	    1. Be careful if you're flying these yourself and not AI! Maximum weight limits exist for a reason.
 1. Once you've found a Mission or Trade mission you like, double-click the row. This will populate the *Optimized Goods* view, which shows a breakdown of which goods you should buy and in which quantities.
     1. Buy Qty is the Optimized quantity you should be purchasing at your Departure ICAO.
@@ -123,6 +124,7 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 - Soon:
 	- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
 	- Show a summary of your 'company' showing daily income, # missions flown, etc.
+	- Customize amount of overweight allowed
 - Not as soon:
     - Randomize mission generation further.
     - Add new mission types: Airline, Humanitarian, SAR, Intercept
