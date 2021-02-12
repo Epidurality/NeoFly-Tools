@@ -145,8 +145,9 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All
-	Gui, Add, Text, xm+350 y+10 w300 vGoods_Hangar, Hangar:
-	Gui, Add, Checkbox, x+10 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
+	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
+	Gui, Add, CheckBox, x+200 vGoods_AllowOverweight gGoods_RefreshHangar, Allow Overweight
+	Gui, Add, Checkbox, x+20 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
 	Gui, Add, Text, xm+20 y130 w50 h15, Aircraft:
@@ -748,6 +749,7 @@ Goods_RefreshMissions:
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	GuiControlGet, Goods_ShowTradeMissions
+	GuicontrolGet, Goods_AllowOverweight
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	validMarketQuery = 
@@ -800,7 +802,7 @@ Goods_RefreshMissions:
 		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
 		return
 	}
-	qPayload := Plane.payload - Plane.fuel - Pilot.weight - Plane.onboardCargo ; This is effectively what space the plane has left to work with to stay under 100% Sim payload.
+	qPayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - Pilot.weight - Plane.onboardCargo ; This is effectively what space the plane has left to work with to stay under 100% Sim payload. If "Allow Overweight" is checked, it ignores the fuel weight.
 	qPax := Plane.pax
 	; Get NeoFly missions
 	GuiControl, , Goods_MissionsText, % "Looking for missions..."
@@ -854,9 +856,20 @@ Goods_RefreshMissions:
 		return
 	}
 	; Analyze NeoFly missions
-	If !(NFMissionsResult.RowCount) {
-		GuiControl, , Goods_MissionsText, % "Could not find missions at Departure ICAO: '" . Goods_DepartureICAO . "'"
-		SB_SetText("Unable to refresh missions")
+	If !(NFMissionsResult.RowCount) { ; If none are displayed, show the user a bit more detail of why that might be
+		NFMissionsCheckQuery =
+		(
+			SELECT m.id FROM missions AS m WHERE m.departure='%Goods_DepartureICAO%' AND %qExpirationField% > DATETIME('now','localtime')
+		)
+		If !(NFMissionsCheckResult := SQLiteGetTable(DB, NFMissionsCheckQuery)) {
+			return
+		}
+		If !(NFMissionsCheckResult.RowCount) {
+			GuiControl, , Goods_MissionsText, % "Could not find any missions at '" . Goods_DepartureICAO . "', try Reset in NeoFly Missions tab."
+		} else {
+			GuiControl, , Goods_MissionsText, % "Found " . NFMissionsCheckResult.RowCount . " missions at '" . Goods_DepartureICAO . "'. None match Plane/Criteria."
+		}
+		SB_SetText("No viable NeoFly Missions found")
 	} else {
 		GuiControl, , Goods_MissionsText, % "Analyzing " NFMissionsResult.RowCount . " missions..."
 		qDepRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dep.refreshDate")
@@ -897,7 +910,7 @@ Goods_RefreshMissions:
 				return
 			}
 			totalProfit := 0
-			availablePayload := Plane.payload - Plane.fuel - qCargo - Pilot.weight - Plane.onboardCargo
+			availablePayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - qCargo - Pilot.weight - Plane.onboardCargo
 			Loop % NFMissionsGoodsResult.RowCount {
 				NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
 				maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
@@ -983,7 +996,7 @@ Goods_RefreshMissions:
 			return
 		}
 		If !(TradesResult.RowCount) {
-			GuiControl, , Goods_TradeMissionsText, % "Could not find suitable trade markets"
+			GuiControl, , Goods_TradeMissionsText, % "Could not find suitable trade markets. Try searching more in NeoFly or changing criteria."
 		} else {
 			GuiControl, , Goods_TradeMissionsText, % "Analyzing " TradesResult.RowCount . " trade missions..."
 			; Get plane location for distance calcs
@@ -1041,7 +1054,7 @@ Goods_RefreshMissions:
 					return
 				}
 				totalProfit := 0
-				availablePayload := Plane.payload - Plane.fuel - Pilot.weight
+				availablePayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - Pilot.weight
 				Loop % TradesGoodsResult.RowCount {
 					TradesGoodsResult.Next(TradesGoodsRow)
 					maxQty := FLOOR(MIN(TradesGoodsRow[4], availablePayload/TradesGoodsRow[2]))
@@ -1191,6 +1204,7 @@ Goods_RefreshMarket:
 	GuiControlGet, Goods_IncludePerishable	
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
+	GuiControlGet, Goods_AllowOverweight
 	goodsChecked := 0
 	If (Goods_IncludeIllicit) {
 		qIllicit := "!= -1"
@@ -1272,7 +1286,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
-	availablePayload := Plane.payload - Plane.fuel- Goods_MissionWeight - Pilot.weight - Plane.onboardCargo
+	availablePayload := Plane.payload - Plane.fuel*(!Goods_AllowOverweight) - Goods_MissionWeight - Pilot.weight - Plane.onboardCargo
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
 	OptimalResult.ColumnNames[12] := "Profit"
@@ -1289,7 +1303,8 @@ Goods_RefreshMarket:
 	}
 	OptimalResult.Reset()
 	goodsWeight -= availablePayload
-	GuiControl, , Goods_PayloadInfo, % ROUND(simPayload-availablePayload,2) . " / " . simPayload . "lbs (" . CEIL((simPayload-availablePayload)*100/simPayload) . "%)"
+	simExpectedPayload := Goods_MissionWeight + Pilot.weight + Plane.onboardCargo + goodsWeight
+	GuiControl, , Goods_PayloadInfo, % ROUND(simExpectedPayload,2) . " / " . simPayload . "lbs (" . CEIL((simExpectedPayload)*100/simPayload) . "%)"
 	GuiControl, , Goods_GoodsWeight, % ROUND(goodsWeight,0)
 	GuiControl, Text, Goods_OptimalGoodsText, % "Displaying " . OptimalResult.RowCount . " viable goods"
 	LV_ShowTable(OptimalResult, "Goods_TradesLV")
@@ -1343,6 +1358,7 @@ Goods_CheckHangar:
 		GuiControl, Text, Goods_WarningText, Change detected with chosen plane! Refresh the Hangar.
 	}
 }
+
 ; == Auto-Market tab Subroutines ==
 Auto_List:
 {

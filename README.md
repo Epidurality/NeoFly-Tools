@@ -38,6 +38,8 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 1. The Trade Profit takes into account your on-board fuel, payload capacity, etc to determine how many goods you're able to bring with you on the flight.
     1. The Optimizer does NOT take range into account for analyzing your plane's viability for the mission. Make sure you have enough fuel to go the distance!
 	1. If you make changes to your fuel levels in NeoFly, refresh the Hangar!
+	1. If you select *Allow Overweight*, the Optimizer will take advantage of the fact that NeoFly does not subtract the Fuel weight from the Max Payload of Planes. You can effectively overweight any Plane by the max fuel weight.
+	    1. Be careful if you're flying these yourself and not AI! Maximum weight limits exist for a reason.
 1. Once you've found a Mission or Trade mission you like, double-click the row. This will populate the *Optimized Goods* view, which shows a breakdown of which goods you should buy and in which quantities.
     1. Buy Qty is the Optimized quantity you should be purchasing at your Departure ICAO.
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. Either edit the database (see the NeoFly documents/discord for help on this), or manually adjust the values to suit.
@@ -150,6 +152,8 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Optimized loading of Goods Optimizer list views slightly - should improve performance.
 - Added Right-Click menu to Optimizer mission views for some QoL quick functions.
 - Added a warning when the user refreshes missions/optimal goods when the plane selected has changed critical parameters (fuel, onboard cargo, location, availability).
+- Added more descriptive text for when results are unavailable in Goods Optimizer.
+- Added "Allow Overweight" in Optimizer. This lets you max out NeoFly's Goods+Mission weight, taking advantage of the fact that it doesn't subtract Fuel Weight from the Max Payload of the plane.
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
