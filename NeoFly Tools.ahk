@@ -8,7 +8,7 @@
 versionNumber := "0.5.0"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
 
-;iniPath := "debug.ini"
+iniPath := "debug.ini"
 
 ; AHK Settings
 {
@@ -31,7 +31,7 @@ global Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pa
 global DB := new SQLiteDB ; SQLite database connection object
 global marketRefreshHours := 24 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
 global fuelPercentForAircraftMarketPayload := 0.40 ; Percent (as decimal) of fuel to be used in the Effective Payload calculation, only in the Aircraft Market tab results.
-global dateFormats := "No Reformatting (Fastest)|yyyy/mm/dd|dd/mm/yyyy|mm/dd/yyyy"
+global dateFormats := "No Reformatting (Fastest)|yyyy/mm/dd|dd/mm/yyyy|mm/dd/yyyy|COULD NOT DETECT"
 
 ; INI vars declaration
 global defaultDBPath
@@ -67,7 +67,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 {
 	Gui, Main:New
 	Gui, Main:Default
-	Gui, +LastFound +OwnDialogs
+	Gui, +LastFound +OwnDialogs -DPIScale
 	If (hideTrayIcon) {
 		Menu, Tray, NoIcon
 	} Else {
@@ -126,7 +126,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+20 w150 y+-40 gSettings_TimestampPreview, Preview These Settings
 	Gui, Add, Text, xm+10 y+25, Note: The '/' can be any character and leading zeroes don't matter, for example: yyyy.m.d format will work when using yyyy/mm/dd option. Use the button above to double-check.`nNote: Missions and Goods may use different formats depending on your locale.
 	Gui, Add, Text, xm+10 y+20, Date Formatting Samples from Database:`t`t`tNote: These dates are drawn from the Missions and GoodsMarket tables, so you must have data in them.
-	Gui, Add, ListView, xm+10 y+10 w915 h150 vSettings_TimestampLV, 
+	Gui, Add, ListView, xm+10 y+10 w915 h150 Count1000 vSettings_TimestampLV, 
 }
 
 ; GUI Goods Optimizer tab
@@ -144,7 +144,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_OnboardCargo, ---
 	
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
-	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All
+	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
 	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
@@ -539,12 +539,14 @@ Settings_TimestampAuto:
 		qExpiration := SQLiteGenerateDateConversion(A_LoopField, "expiration")
 		MissionTimeCheckQuery = 
 		( 
-			SELECT DISTINCT 
-				'Missions.Expiration' AS [DB Field], 
-				expiration AS [DB Value], %qExpiration% AS Formatted, 
-				IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
-				IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-			FROM missions ORDER BY Validation DESC LIMIT 1
+			SELECT * FROM (
+				SELECT DISTINCT 
+					'Missions.Expiration' AS [DB Field], 
+					expiration AS [DB Value], %qExpiration% AS Formatted, 
+					IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
+					IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
+				FROM missions ORDER BY id DESC LIMIT 300 )
+			ORDER BY Validation DESC LIMIT 1
 		)
 		If !(MissionTimeCheckResult := SQLiteGetTable(DB, MissionTimeCheckQuery)) {
 			return
@@ -560,13 +562,15 @@ Settings_TimestampAuto:
 		GuiControl, Choose, Settings_GoodsDateFormat, %A_Index%
 		qRefreshDate := SQLiteGenerateDateConversion(A_LoopField, "refreshDate")
 		GoodsTimeCheckQuery = 
-		( 
-			SELECT DISTINCT 
-				'GoodsMarket.RefreshDate' AS [DB Field], 
-				refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
-				IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
-				IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Diff to Now]
-			FROM goodsMarket ORDER BY Validation DESC LIMIT 1
+		(
+			SELECT * FROM (
+				SELECT DISTINCT 
+					'GoodsMarket.RefreshDate' AS [DB Field], 
+					refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
+					IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
+					IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
+				FROM goodsMarket ORDER BY id DESC LIMIT 300 )
+			ORDER BY Validation DESC LIMIT 1
 		)
 		If !(GoodsTimeCheckResult := SQLiteGetTable(DB, GoodsTimeCheckQuery)) {
 			return
@@ -596,14 +600,14 @@ Settings_TimestampPreview:
 			SELECT DISTINCT 
 				'GoodsMarket.RefreshDate' AS [DB Field], 
 				refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
-				IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS [Validation],
-				IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Diff to Now]
+				IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
+				IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
 			FROM goodsMarket ORDER BY id DESC LIMIT 300 )
 		UNION ALL SELECT * FROM (
 			SELECT DISTINCT 
 				'Missions.Expiration' AS [DB Field], 
 				expiration AS [DB Value], %qExpiration% AS Formatted, 
-				IFNULL(DATETIME(%qExpiration%), 'INVALID') AS [Validation],
+				IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
 				IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
 			FROM missions ORDER BY id DESC LIMIT 300 )
 		ORDER BY Validation DESC
@@ -886,7 +890,7 @@ Goods_RefreshMissions:
 		If !(NFMissionsCheckResult.RowCount) {
 			GuiControl, , Goods_MissionsText, % "Could not find any missions at '" . Goods_DepartureICAO . "', try Reset in NeoFly Missions tab."
 		} else {
-			GuiControl, , Goods_MissionsText, % "Found current missions at '" . Goods_DepartureICAO . "', but either aren't viable or don't have markets at destinations."
+			GuiControl, , Goods_MissionsText, % "Found current missions at '" . Goods_DepartureICAO . "', but either don't meet criteria or don't have markets at destinations."
 		}
 		SB_SetText("No viable NeoFly Missions found")
 	} else {
@@ -1377,6 +1381,7 @@ Goods_CheckHangar:
 	If (Plane.id != CheckHangarRow[1] || Plane.location != CheckHangarRow[2] || Plane.fuel != CheckHangarRow[3] || Plane.onboardCargo != CheckHangarRow[4]) {
 		GuiControl, Text, Goods_WarningText, Change detected with chosen plane! Refresh the Hangar.
 	}
+	return
 }
 
 ; == Auto-Market tab Subroutines ==

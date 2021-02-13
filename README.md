@@ -2,6 +2,7 @@
 Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
 
 [Jump to Change Log](#change-log)
+[Jump to Known Issues](#known-issues)
 
 ## Instructions:
 I've taken the time to document the procedures and nuances of the program, please take the time to read them before posting issues you're having. **Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!** 
@@ -115,6 +116,7 @@ When enabled, will alert you via Discord Webhook when a plane returns to the Han
 
 ## Known Issues:
 - Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
+- Auto-Timestamp chooser when connecting to a database only looks at the newest few entries in the database. Some databases have multiple timestamp formats for the same field depending on NeoFly version used to create them. Manually check your DB if you still have issues.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
 ## New Issues:
@@ -156,6 +158,8 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Added a warning when the user refreshes missions/optimal goods when the plane selected has changed critical parameters (fuel, onboard cargo, location, availability).
 - Added more descriptive text for when results are unavailable in Goods Optimizer.
 - Added "Allow Overweight" in Optimizer. This lets you max out NeoFly's Goods+Mission weight, taking advantage of the fact that it doesn't subtract Fuel Weight from the Max Payload of the plane.
+- Limited the Auto-Timestamp check to 300 rows to ensure NeoFly's current/newest timestamps are what gets formatted correctly.
+- Increased performance of Timestamp list view, queries. Leads to lower "load times".
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
