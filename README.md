@@ -2,6 +2,7 @@
 Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
 
 [Jump to Change Log](#change-log)
+
 [Jump to Known Issues](#known-issues)
 
 ## Instructions:
