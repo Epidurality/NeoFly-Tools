@@ -8,7 +8,7 @@
 versionNumber := "0.5.0"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
 
-iniPath := "debug.ini"
+;iniPath := "debug.ini"
 
 ; AHK Settings
 {
@@ -67,7 +67,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 {
 	Gui, Main:New
 	Gui, Main:Default
-	Gui, +LastFound +OwnDialogs -DPIScale
+	Gui, +LastFound +OwnDialogs
 	If (hideTrayIcon) {
 		Menu, Tray, NoIcon
 	} Else {
@@ -149,7 +149,8 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
-	Gui, Add, Text, xm+20 y130 w50 h15, Aircraft:
+	Gui, Add, Button, xm+100 y105 h20 gGoods_Summary, Summary
+	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
 	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
 	Gui, Add, Text, x+10 w250 hp vGoods_FuelInfo, ---
@@ -634,6 +635,10 @@ Goods_RefreshHangar:
 	GuiControl, , Goods_GoodsWeight, ---
 	GuiControl, , Goods_MissionsText
 	GuiControl, , Goods_TradeMissionsText
+	GuiControl, , Goods_PayloadInfo
+	GuiControl, , Goods_PlaneInfo, Double-click a Plane from the Hangar
+	GuiControl, , Goods_MissionInfo
+	GuiControl, , Goods_FuelInfo
 	qPilotID := Pilot.id
 	If (Goods_HangarAll) {
 		qStatusClause := "hangar.status != 5"
@@ -754,6 +759,8 @@ Goods_RefreshMissions:
 	GuiControl, , Goods_TradeMissionsText
 	GuiControl, , Goods_OptimalGoodsText, Double-Click a Mission/Trade Mission
 	GuiControl, , Goods_WarningText
+	GuiControl, , Goods_PayloadInfo, Double-Click a Mission/Trade Mission
+	GuiControl, , Goods_MissionInfo, Double-Click a Mission/Trade Mission
 	GuiControlGet, Goods_DepartureICAO
 	GuiControlGet, Goods_IncludeIllicit
 	GuiControlGet, Goods_IncludeNormal
@@ -1381,6 +1388,57 @@ Goods_CheckHangar:
 	If (Plane.id != CheckHangarRow[1] || Plane.location != CheckHangarRow[2] || Plane.fuel != CheckHangarRow[3] || Plane.onboardCargo != CheckHangarRow[4]) {
 		GuiControl, Text, Goods_WarningText, Change detected with chosen plane! Refresh the Hangar.
 	}
+	return
+}
+
+Goods_Summary:
+{
+	GoSub Goods_CheckHangar
+	Gui, Main:Default
+	GuiControlGet, Goods_WarningText
+	GuiControlGet, Goods_MissionInfo
+	GuiControlGet, Goods_PlaneInfo
+	GuiControlGet, Goods_FuelInfo
+	GuiControlGet, Goods_PayloadInfo
+	Gui, Summary:New
+	Gui, Summary:+AlwaysOnTop -MinimizeBox -MaximizeBox +OwnerMain
+	Gui, Summary:Add, Text, xm, % Goods_MissionInfo
+	Gui, Summary:Add, Text, xm, % Goods_PlaneInfo
+	Gui, Summary:Font, bold
+	Gui, Summary:Add, Text, xm y+20, Goods to buy:
+	Gui, Summary:Font
+	; Get list of goods
+	Gui, Main:Default
+	Gui, ListView, Goods_TradesLV
+	Loop % LV_GetCount() {
+		LV_GetText(lvGood, A_Index, 1)
+		LV_GetText(lvQty, A_Index, 10)
+		Gui, ListView, Goods_TradesLV
+		Gui, Summary:Add, Text, xm w75, % lvGood
+		Gui, Summary:Add, Text, x+5, % lvQty
+	}	
+	Gui, Summary:Add, Text, xm y+30, % "Fuel:`t`t" . Goods_FuelInfo
+	Gui, Summary:Add, Text, xm, % "Payload:`t" . Goods_PayloadInfo
+	Gui, Summary:Add, Button, w150 x65 gSummaryGuiClose, Close
+	Gui, Summary:Add, Text, xm cRed w280, % Goods_WarningText
+	; If possible, find where NeoFly is and put the summary on top of it.
+	WinGet, nfState, MinMax, ahk_exe NeoFly.exe
+	If (nfState=1 || nfState=0) { ; 1=maximized, 0=shown but not maximized
+		WinGetPos, nfX, nfY, nfW, nfH, ahk_exe NeoFly.exe
+		summaryX := "x" . nfX + nfW/2
+		summaryY := "y" . nfY + nfH/4
+	} else {
+		summaryX := ""
+		summaryY := ""
+	}
+	Gui, Summary:Show, %summaryX% %summaryY% w300, Optimizer Summary
+	return
+}
+
+; == Summary window Subroutines ==
+SummaryGuiClose:
+{
+	Gui, Summary:Destroy
 	return
 }
 

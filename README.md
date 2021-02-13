@@ -45,6 +45,7 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 	    1. Be careful if you're flying these yourself and not AI! Maximum weight limits exist for a reason.
 1. Once you've found a Mission or Trade mission you like, double-click the row. This will populate the *Optimized Goods* view, which shows a breakdown of which goods you should buy and in which quantities.
     1. Buy Qty is the Optimized quantity you should be purchasing at your Departure ICAO.
+	1. You can also click the Summary button to pop-out a summary information window based on the information shown (which will overlay NeoFly if NeoFly is open, overlay the main GUI otherwise).
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. Either edit the database (see the NeoFly documents/discord for help on this), or manually adjust the values to suit.
 
 ### Auto-Market Search:
@@ -127,7 +128,6 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 - Soon:
 	- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
 	- Show a summary of your 'company' showing daily income, # missions flown, etc.
-	- Customize amount of overweight allowed
 - Not as soon:
     - Randomize mission generation further.
     - Add new mission types: Airline, Humanitarian, SAR, Intercept
@@ -161,6 +161,8 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Added "Allow Overweight" in Optimizer. This lets you max out NeoFly's Goods+Mission weight, taking advantage of the fact that it doesn't subtract Fuel Weight from the Max Payload of the plane.
 - Limited the Auto-Timestamp check to 300 rows to ensure NeoFly's current/newest timestamps are what gets formatted correctly.
 - Increased performance of Timestamp list view, queries. Leads to lower "load times".
+- Added a Summary GUI to the Optimizer (click the *Summary* button at the top of the Optimizer). Useful for overlaying on NeoFly.
+- Updated text in Optimizer more intelligently.
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
