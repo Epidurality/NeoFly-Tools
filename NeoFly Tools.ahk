@@ -39,7 +39,9 @@ global autoConnect
 global autoConnectDefaultTab
 global hideTrayIcon
 global autoMarketHotkey
+global autoMarketStopHotkey
 global discordWebhookURL
+
 
 ; Read from the INI
 If (iniPath="") {
@@ -50,6 +52,7 @@ IniRead, autoConnect, %iniPath%, Setup, autoConnect, 0
 IniRead, autoConnectDefaultTab, %iniPath%, Setup, autoConnectDefaultTab, 2
 IniRead, hideTrayIcon, %iniPath%, Setup, hideTrayIcon, 0
 IniRead, autoMarketHotkey, %iniPath%, Setup, autoMarketHotkey, NumpadEnter
+IniRead, autoMarketStopHotkey, %iniPath%, Setup, autoMarketStopHotkey, NumpadSub
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
 }
 
@@ -159,12 +162,13 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Text, xm+20 y+10 w50 hp, Mission:
 	Gui, Add, Text, x+10 w250 hp vGoods_MissionInfo, ---
 
-	Gui, Add, Text, xm+150 y+10, Arrival Requirements:
+	Gui, Add, Text, xm+70 y+10, Arrival Requirements:
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalILS gGoods_RefreshMissions, ILS
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalApproach gGoods_RefreshMissions, Approach
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalLights gGoods_RefreshMissions, Rwy Lights
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalVASI gGoods_RefreshMissions, VASI/PAPI
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalHard gGoods_RefreshMissions, Hard Rwy
+	Gui, Add, Checkbox, x+20 vGoods_ArrivalTower gGoods_RefreshMissions, Tower
 	Gui, Add, Text, x+20, Min Rwy Len.
 	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen gGoods_RefreshMissions, 1000
 
@@ -175,7 +179,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+20 vGoods_IncludePerishable Checked gGoods_RefreshMissions, Perishable
 	Gui, Add, Checkbox, x+20 vGoods_IncludeNormal Checked gGoods_RefreshMissions, Normal
 	Gui, Add, CheckBox, x+40 vGoods_AllowOverweight gGoods_ChangeOverweight, Allow Overweight of:
-	Gui, Add, Edit, x+5 vGoods_MaxOverweight gGoods_ChangeOverweight w80 h20 Disabled, 999999
+	Gui, Add, Edit, x+0 vGoods_MaxOverweight gGoods_ChangeOverweight w80 h20 Disabled, 999999
 	Gui, Add, Text, x+0, lbs
 	
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
@@ -215,21 +219,14 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	
 	Gui, Add, Button, xm+10 y+20 gAuto_Load, Load for Entry
 	Gui, Add, Button, x+30 gAuto_Unload, Stop Entry
-	Gui, Add, Checkbox, x+30 vAuto_IgnoreWindow, Ignore Active Window Check (only use if script is not properly detecting that NeoFly is the active window)
+	Gui, Add, Button, x+30 gAuto_AutoEntry, Auto Entry
+	Gui, Add, Checkbox, x+30 vAuto_IgnoreWindow, Ignore Active Window Check`n(only use if script is not properly detecting that NeoFly is the active window)
+	Gui, Add, Text, x+10, Delay in Auto Entry (ms):
+	Gui, Add, Edit, x+5 vAuto_Delay, 1500
 	
-	Gui, Add, Text, xm+10 y+30, 
-	(
-Ensure your cursor is in the ICAO edit box in the NeoFly Market tab. 
-When you press {%autoMarketHotkey%}, this script will go through each ICAO you've selected above, doing the following:
-	1. Send Ctrl+A to highlight any text in the ICAO box
-	2. Send the new ICAO name, corresponding to the first selected ICAO left in the list view above
-	3. Send the Enter key to search the Market
-	4. Remove the already-searched ICAO from the list above.
-Press the {%autoMarketHotkey%} again, and it will do the same with the next selected ICAO.
-The Hotkey is only active after you've pressed Load for Entry. Active status is confirmed by a tooltip appearing by your cursor.
-You can Ctrl+Click or Shift+Click to multi-select entries in the table above. You can also change your entries while the Hotkey is active.
-You can change the Hotkey from {%autoMarketHotkey%} to whatever you'd like by modifying the defaults in the .ini file.
-	)
+	Gui, Font, Bold
+	Gui, Add, Text, xm+10 y+30, Please read the included Readme for instructions on using this part of the tool.
+	Gui, Font
 	
 }	
 
@@ -272,6 +269,7 @@ You can change the Hotkey from {%autoMarketHotkey%} to whatever you'd like by mo
 	Gui, Add, Text, xm+10 y70, Aircraft Name (or part of name) as seen in NeoFly database:
 	Gui, Add, Edit, w300 vAircraftMarket_Aircraft, Cessna
 	Gui, Add, Button, x+20 w100 gAircraftMarket_Search, Search
+	Gui, Add, Button, x+150 gAircraftMarket_Compare, Compare Models
 	Gui, Add, Text, xm+10 y+20, Matching Aircraft:
 	Gui, Add, Text, x+10 w500 vAircraftMarket_AircraftText, Press Search to find aircraft in the market
 	Gui, Add, ListView, xm+10 y+10 w915 h450 Grid vAircraftMarket_LV
@@ -553,7 +551,7 @@ Settings_TimestampAuto:
 			return
 		}
 		MissionTimeCheckResult.GetRow(1, MissionTimeCheckRow)
-		If !(MissionTimeCheckRow[3] = "INVALID" || MissionTimeCheckRow[4] = "INVALID") { ; This format worked
+		If (MissionTimeCheckRow[3] != "INVALID" && MissionTimeCheckRow[4] != "INVALID" && MissionTimeCheckResult.RowCount>0) { ; This format worked
 			break ; Exit the loop to stop choosing mission formats
 		}
 	}
@@ -577,9 +575,19 @@ Settings_TimestampAuto:
 			return
 		}
 		GoodsTimeCheckResult.GetRow(1, GoodsTimeCheckRow)
-		If !(GoodsTimeCheckRow[3] = "INVALID" || GoodsTimeCheckRow[4] = "INVALID") { ; This format worked
+		If (GoodsTimeCheckRow[3] != "INVALID" && GoodsTimeCheckRow[4] != "INVALID" && GoodsTimeCheckResult.RowCount>0) { ; This format worked
 			break ; Stop choosing mission formats
 		}
+	}
+	GuiControlGet, Settings_MissionDateFormat
+	GuiControlGet, Settings_GoodsDateFormat
+	; This just dynamically gets the last element, which will always be our "error" element, of the dropbox.
+	Loop, Parse, dateFormats, |
+	{
+		lastFormat := A_LoopField
+	}
+	If (Settings_MissionDateFormat = lastFormat || Settings_GoodsDateFormat = lastFormat) { ; Was not able to detect one of the dates reliably
+		MsgBox, 16, Timestamp Error, % "Could not reliably detect Mission and/or GoodsMarket timestamp format.`n`nProgram will not function correctly if dates are not set properly.`n`nEnsure you have searched Markets and Missions to increase reliability of automatic timestamp detection."
 	}
 	SB_SetText("Timestamp conversion was performed")
 	GoSub Settings_TimestampPreview
@@ -639,6 +647,8 @@ Goods_RefreshHangar:
 	GuiControl, , Goods_PlaneInfo, Double-click a Plane from the Hangar
 	GuiControl, , Goods_MissionInfo
 	GuiControl, , Goods_FuelInfo
+	GuiControl, , Goods_OptimalGoodsText
+	GuiControl, , Goods_WarningText
 	qPilotID := Pilot.id
 	If (Goods_HangarAll) {
 		qStatusClause := "hangar.status != 5"
@@ -675,7 +685,7 @@ Goods_RefreshHangar:
 			SELECT planeid, SUM(totalweight) AS totalCargo FROM cargo GROUP BY planeid ) AS onboardCargo ON hangar.id = onboardCargo.planeid
 		WHERE owner=%qPilotID% 
 		AND %qStatusClause%
-		ORDER BY hangar.id
+		ORDER BY hangar.tailNumber, hangar.id
 	)
 	If !(hangarResult := SQLiteGetTable(DB, hangarQuery)) {
 		return
@@ -777,6 +787,7 @@ Goods_RefreshMissions:
 	GuiControlGet, Goods_ShowTradeMissions
 	GuicontrolGet, Goods_AllowOverweight
 	GuiControlGet, Goods_MaxOverweight
+	GuiControlGet, Goods_ArrivalTower
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	validMarketQuery = 
@@ -861,7 +872,8 @@ Goods_RefreshMissions:
 			a.num_runway_light AS [Rwy Lights],
 			a.num_runway_end_vasi AS [VASI/PAPI],
 			a.num_runway_hard AS [Hard Rwys],			
-			a.longest_runway_length AS [Rwy Len]			
+			a.longest_runway_length AS [Rwy Len],
+			a.has_tower_object AS [Tower]			
 		FROM missions AS m
 		LEFT JOIN goodsMarket AS gm
 		ON gm.location=m.arrival
@@ -875,6 +887,7 @@ Goods_RefreshMissions:
 			AND a.num_runway_end_vasi >= %Goods_ArrivalVASI%
 			AND a.num_approach >= %Goods_ArrivalApproach%
 			AND a.longest_runway_length >= %Goods_ArrivalRwyLen%
+			AND a.has_tower_object >= %Goods_ArrivalTower%
 			AND gm.location != '%Goods_DepartureICAO%'
 			AND m.weight <= %qPayload%
 			AND m.pax <= %qPax%
@@ -991,7 +1004,8 @@ Goods_RefreshMissions:
 				a.num_runway_light AS [Rwy Lights],
 				a.num_runway_end_vasi AS [VASI/PAPI],
 				a.num_runway_hard AS [Hard Rwys],			
-				a.longest_runway_length AS [Rwy Len]
+				a.longest_runway_length AS [Rwy Len],
+				a.has_tower_object AS [Tower]
 			FROM (
 				SELECT
 					dest.location AS location,
@@ -1020,6 +1034,7 @@ Goods_RefreshMissions:
 				AND a.num_runway_end_ils >= %Goods_ArrivalILS%
 				AND a.num_runway_end_vasi >= %Goods_ArrivalVASI%
 				AND a.num_approach >= %Goods_ArrivalApproach%
+				AND a.has_tower_object >= %Goods_ArrivalTower%
 				AND a.longest_runway_length >= %Goods_ArrivalRwyLen%
 		)
 		If !(TradesResult := SQLiteGetTable(DB, TradesQuery)) {
@@ -1401,7 +1416,7 @@ Goods_Summary:
 	GuiControlGet, Goods_FuelInfo
 	GuiControlGet, Goods_PayloadInfo
 	Gui, Summary:New
-	Gui, Summary:+AlwaysOnTop -MinimizeBox -MaximizeBox +OwnerMain
+	Gui, Summary:+AlwaysOnTop -MinimizeBox -MaximizeBox
 	Gui, Summary:Add, Text, xm, % Goods_MissionInfo
 	Gui, Summary:Add, Text, xm, % Goods_PlaneInfo
 	Gui, Summary:Font, bold
@@ -1490,7 +1505,8 @@ Auto_Load:
 		return
 	}
 	HotKey, %autoMarketHotkey%, Auto_Entry, On
-	ToolTip % "READ THE INSTRUCTIONS BELOW!`t`t" . LV_GetCount("Selected") . " ICAOs left to enter"
+	HotKey, %autoMarketStopHotkey%, Auto_Unload, On
+	ToolTip % "Press {" . autoMarketHotkey . "} to begin the entries"
 	SB_SetText("Auto-Market entry is active")
 	return
 }
@@ -1527,6 +1543,23 @@ Auto_Entry:
 		ToolTip % LV_GetCount("Selected") . "  ICAOs left to enter"
 	}
 	SB_SetText("ICAO entered into trading tab of NeoFly")
+	autoEntryViable := true ; Set flag if we made it to here so that Auto Entry knows we're good to go again.
+	return
+}
+
+Auto_AutoEntry:
+{
+	HotKey, %autoMarketHotkey%, Auto_AutoEntryBegin, On
+	HotKey, %autoMarketStopHotkey%, Auto_Unload, On
+	ToolTip % "Press {" . autoMarketHotkey . "} to begin the Auto Entry"
+	return
+}
+
+Auto_AutoEntryBegin:
+{
+	Gui, Main:Default
+	GuiControlGet, Auto_Delay
+	SetTimer, Auto_Entry, %Auto_Delay%
 	return
 }
 
@@ -1535,6 +1568,8 @@ Auto_Unload:
 	Gui, Main:Default
 	SB_SetText("Turning off Auto-Market hotkey")
 	HotKey, %autoMarketHotkey%, Off
+	HotKey, %autoMarketStopHotkey%, Off
+	SetTimer, Auto_Entry, Delete
 	ToolTip
 	SB_SetText("Auto-Market entry is stopped")
 	return
@@ -1733,6 +1768,43 @@ AircraftMarket_Search:
 	LV_ShowTable(AircraftMarketResult, "AircraftMarket_LV")
 	LV_ModifyCol(5, "Sort")
 	SB_SetText("Aircraft market searched")
+	return
+}
+
+AircraftMarket_Compare:
+{
+	SB_SetText("Comparing plane models...")
+	qPilotWeight := Pilot.weight
+	AircraftCompareQuery = 
+	(
+		SELECT
+			ad.aircraft AS Airplane,
+			MIN(MIN(CAST(ad.cost AS INT), CAST(IFNULL(am.cost, 99999999999) AS INT))) AS [Lowest Price],
+			ad.cost AS [Base Cost],
+			ad.Qualification AS Qualification,
+			ad.CruiseSpeedktas AS [Cruise Speed (kts)],
+			ad.rangenm AS [Range(nm)],
+			ad.FuelCaplbs AS [Max Fuel(lbs)],
+			ad.MaxPayloadlbs AS [Max Payload],
+			CAST(ad.MaxPayloadlbs - (ad.FuelCaplbs*%fuelPercentForAircraftMarketPayload%) - %qPilotWeight% AS INT) AS [Effective Payload],
+			ad.Pax AS [Pax],
+			CAST(MIN(MIN(CAST(ad.cost AS INT), CAST(IFNULL(am.cost, 99999999999) AS INT)))/ad.rangenm AS INT) AS [Price/Range],
+			CAST(MIN(MIN(CAST(ad.cost AS INT), CAST(IFNULL(am.cost, 99999999999) AS INT)))/ad.MaxPayloadlbs AS INT) AS [Price/Payload],
+			CAST(MIN(MIN(CAST(ad.cost AS INT), CAST(IFNULL(am.cost, 99999999999) AS INT)))/(ad.MaxPayloadlbs - (ad.FuelCaplbs*%fuelPercentForAircraftMarketPayload%) - %qPilotWeight%) AS INT) AS [Price/Effective Payload],
+			CAST(MIN(MIN(CAST(ad.cost AS INT), CAST(IFNULL(am.cost, 99999999999) AS INT)))/ad.Pax AS INT) AS [Price/Pax],
+			COUNT(am.aircraft) AS [Num For Sale]
+		FROM aircraftData AS ad
+		LEFT JOIN aircraftMarket AS am ON ad.Aircraft = am.Aircraft
+		GROUP BY Airplane
+		ORDER BY Airplane ASC
+		
+	)
+	If !(AircraftCompareResult := SQLiteGetTable(DB, AircraftCompareQuery)) {
+		return
+	}
+	GuiControl, Text, AircraftMarket_AircraftText, % "Showing all known types of aircraft for comparison"
+	LV_ShowTable(AircraftCompareResult, "AircraftMarket_LV")
+	SB_SetText("Showed plane model details")
 	return
 }
 
@@ -2372,7 +2444,7 @@ LV_ShowTable(Table, LV, drawImmediate := TRUE) {
 		LV_GetText(numberCheck, 1, A_Index)
 		If numberCheck Is digit
 		{
-			LV_ModifyCol(A_Index, "Integer")
+			LV_ModifyCol(A_Index, "Float")
 		}
 	}
 	If (drawImmediate) {

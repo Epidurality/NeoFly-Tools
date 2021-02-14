@@ -61,7 +61,10 @@ Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on
     1. Send the Enter key to search the Market
     1. Remove the already-searched ICAO from the list above.
 1. Press the hotkey again, and it will do the same with the next selected ICAO.
-1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the Hotkey will be disabled.
+1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the entry script will be disabled. Alternatively, you can use the stop Hotkey.
+1. There is also an *Auto Entry* mode, where you need only press the hotkey once and the script will automatically enter remaining ICAOs without you pressing the hotkey repeatedly.
+    1. Adjust the *Delay in Auto Entry* time to your liking.
+    1. Note: NeoFly can accept and process the searches very quickly, however it will visually look like the markets are not being generated fast enough. By default the time is set to 1500ms (1.5s) to allow enough time for the NeoFly GUI to process the market, but this is not necessary. A delay of 100 has worked in testing.
 
 ### Market Finder:
 Displays where you can find Markets selling or buying the Good you specify. Useful for finding somewhere to sell your load of goods.
@@ -75,6 +78,7 @@ This tool searches the AircraftMarket table for available Planes for sale. It di
 1. Go to the Aircraft Market tab.
 1. Use the text field to enter the name (or part of a name) of the aircraft. The name must match (or match part of) the name of the plane as entered in the NeoFly database. For example, "Cessna" or "CJ4".
 1. Press search. Results will be shown, with the Distance based on your Pilot's current position.
+1. *Compare Models* button displays one of each model plane to allow you to compare their stats. Also provides the lowest price found in the AircraftMarket for each plane, which you can then search specifically to locate.
 
 ### Mission Generator:
 This lets you generate custom missions for use in NeoFly. 
@@ -119,6 +123,7 @@ When enabled, will alert you via Discord Webhook when a plane returns to the Han
 ## Known Issues:
 - Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
 - Auto-Timestamp chooser when connecting to a database only looks at the newest few entries in the database. Some databases have multiple timestamp formats for the same field depending on NeoFly version used to create them. Manually check your DB if you still have issues.
+- Auto-Timestamp chooser basically doesn't work with brand-new databases, since the Markets are not populated yet so there are no dates to check.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
 ## New Issues:
@@ -163,6 +168,9 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Increased performance of Timestamp list view, queries. Leads to lower "load times".
 - Added a Summary GUI to the Optimizer (click the *Summary* button at the top of the Optimizer). Useful for overlaying on NeoFly.
 - Updated text in Optimizer more intelligently.
+- Added "Tower" to the list of Arrival filters in the Optimizer.
+- Added a *Compare Models* button to the Aircraft Market tab which displays one of each model plane to allow you to compare their stats. Also provides the lowest price found in the AircraftMarket for each plane, which you can then search specifically to locate.
+- Added a more automatic *Auto-Market* function.
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
