@@ -2403,7 +2403,7 @@ SQLiteGenerateDateConversion(format, field) {
 				ELSE %normalized%
 			END
 		)
-	; Check for AM/PM
+	; Check for AM/PM, subtract 12hours if AM
 	normalized =
 		(
 			CASE SUBSTR(%field%, -2, 1)
@@ -2411,6 +2411,11 @@ SQLiteGenerateDateConversion(format, field) {
 					CASE SUBSTR(%field%, 12, 2)
 						WHEN '12' THEN %normalized%
 						ELSE DATETIME(%normalized%, '+12 hours')
+					END )
+				WHEN 'A' THEN (
+					CASE SUBSTR(%field%, 12, 2)
+						WHEN '12' THEN DATETIME(%normalized%, '-12 hours')
+						ELSE %normalized%
 					END )
 				ELSE %normalized%
 			END
