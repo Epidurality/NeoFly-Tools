@@ -15,6 +15,8 @@ I've taken the time to document the procedures and nuances of the program, pleas
 
 ### Installation:
 1. Download the latest release folder and make sure all files are in the same folder.
+    1. If using the *Executable / Binary* version, simply run the *NeoFly Tools.exe*.
+	1. If you prefer using the Script version, download the *Source* folder instead and run the *NeoFly Tools.ahk* script. Requires AutoHotkey (https://www.autohotkey.com/).
 1. Configure your defaults and certain settings using the *NeoFly Tools.ini* file.
 1. Requires NeoFly 2.12 (Tail Number update) or later.
 
