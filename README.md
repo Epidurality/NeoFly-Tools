@@ -1,12 +1,22 @@
 # NeoFly Tools
-Small collection of tools for use with the NeoFly career mode addon for MSFS 2020 (https://www.neofly.net/).
+Small collection of tools for use with the NeoFly career mod addon for MSFS 2020 (https://www.neofly.net/).
+
+[Jump to Change Log](#change-log)
+
+[Jump to Known Issues](#known-issues)
+
+## Donations
+If you find these tools useful, please consider donating to show your support. However, I encourage you to first donate in support of NeoFly as these tools are useless without the excellent, *unpaid* effort of its developers. Plus, perks!
+- [Donate to NeoFly](https://www.neofly.net/store)
+- [Support these tools](https://www.paypal.com/donate?hosted_button_id=95SBRGV8W9LN6)
 
 ## Instructions:
-**Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!**
+I've taken the time to document the procedures and nuances of the program, please take the time to read them before posting issues you're having. **Please read this ReadMe fully. It may answer a question you have, or help to diagnose a bug!** 
 
 ### Installation:
 1. Download the latest release folder and make sure all files are in the same folder.
 1. Configure your defaults and certain settings using the *NeoFly Tools.ini* file.
+1. Requires NeoFly 2.12 (Tail Number update) or later.
 
 ### Connecting to the Database:
 1. Go to the Settings tab
@@ -17,33 +27,41 @@ Small collection of tools for use with the NeoFly career mode addon for MSFS 202
 1. In the bottom half of the Settings tab, there is information about the Date Formats used for the NeoFly database.
     1. NeoFly does not use standard SQLite formats for dates, so the dates must be converted from how they appear in the database before they can be analyzed by these Tools.
 	1. Depending on your locale, there may be separate date formats for the *Missions.expiry* field and the *GoodsMarket.refreshDate* field.
-1. In order to confirm that the dates will work correctly, select your date formats from the dropdowns.
-1. When you hit the *Check Timestamp Format* button, it will search your database for Goods Market and Mission expiration dates, and displays the 300 most recent results for each table as well as some validation fields to cross-check.
-1. Play with the formats until both the *Mission.Expiration* AND *GoodsMarket.RefreshDate* results no longer have any INVALID entires.
-1. If none of the available formats work for you, please use the GitHub "Issues" feature with an example of your timestamp as it shows in the *DB Value* column.
-1. After you've figured out which timestamp formats cause the script to spit out correct results, you shouldn't have to play with this again: just select the same formats every time and you should be good.
-1. Note: For the reformatting to work halfway efficiently, you may have the Seconds truncated from your timestamps. This is unlikely to be a problem, but raise an Issue if it is.
+1. NeoFly Tools will automatically attempt to detect your Timestamp formats every time you connect to a database.
+    1. If the Samples from Database view appears correct (no INVALID entries), then the time format has likely been set correctly.
+    1. If none of the available formats work for you, please use the GitHub "Issues" feature with an example of your timestamp as it shows in the *DB Value* column.
+	1. It's also possible that, if you have a new/empty/nearly empty database, the automatic date detection can be erroneous (for example if you had ambiguous dates, like 12-12-2012).
+	1. If you have problems with other functions of the Tools, please **double check your dates are being formatted correctly**.
 
 ### Goods Optimizer:
-This tool is to help optimize your trading in NeoFly. It analyzes your Plane's weight, fuel, and payload, and determines which goods are able to be traded between your Departure (where the Plane currently is) and your Destination (as determined by the destination of your chosen mission).
+This tool is to help optimize your trading in NeoFly. It analyzes your Plane's weight, fuel, and payload, and determines which goods are able to be traded between your Departure (where the Plane currently is) and your Arrival (as determined by the destination of your chosen mission).
 1. Search the market at your Departure ICAO in NeoFly.
 1. Optionally, search the Missions at your Departure ICAO in NeoFly.
 1. Search a few markets of your choosing (previewing also works). Note that markets are only valid for 24 hours, after which time you will have to search/preview them again.
-1. In the goods optimizer, double-click the plane you plan to use from the Hangar view. This will auto-populate your Fuel and Departure, as well as allow the Optimizer to establish your available payload. It will also automatically refresh the mission views.
-1. The *NeoFly Missions* view and *Trade / Transit Missions* view will display all possibilities for trading given your current Departure ICAO (by default sorted by Income per distance, Income/nm).
-    1. Additionally, *Can Buy At Arrival* is shown in each mission view, and contains a list of the purchasable goods at the **ARRIVAL** ICAO. This list is useful, as you'll come to know that some goods produce more profit than others (Phones, for instance, are highly profitable for their weight). This field will give you an idea of how profitable the next trade mission may be.
+1. In the goods optimizer, double-click the plane you want to use from the Hangar view. This will auto-populate your Fuel and Departure, as well as allow the Optimizer to establish your available payload.
+1. The *NeoFly Missions* view and *Trade / Transit Missions* view will display all possibilities for trading given your current Departure ICAO.
 	1. Note: The NeoFly missions will be filtered based on the Payload and Pax capacity of your airplane, but are NOT filtered for your pilot rank or distance/range.
 1. The Trade Profit takes into account your on-board fuel, payload capacity, etc to determine how many goods you're able to bring with you on the flight.
     1. The Optimizer does NOT take range into account for analyzing your plane's viability for the mission. Make sure you have enough fuel to go the distance!
 	1. If you make changes to your fuel levels in NeoFly, refresh the Hangar!
+	1. If you select *Allow Overweight*, the Optimizer will take advantage of the fact that NeoFly does not subtract the Fuel weight from the Max Payload of Planes. You can effectively overweight any Plane by up to the current fuel weight.
+	    1. Script will use whichever is lower: the maximum weight allowed by NeoFly to start the mission, or the custom overweight amount you enter in the field. All results should still be viable flights in NeoFly, even if MSFS shows you're overloaded.
+	    1. Be careful if you're flying these yourself and not AI! Maximum weight limits exist for a reason.
 1. Once you've found a Mission or Trade mission you like, double-click the row. This will populate the *Optimized Goods* view, which shows a breakdown of which goods you should buy and in which quantities.
     1. Buy Qty is the Optimized quantity you should be purchasing at your Departure ICAO.
+	1. You can also click the Summary button near the top to pop-out a summary information window based on the information shown (which will overlay NeoFly if NeoFly is open, or overlay the main GUI otherwise).
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. Either edit the database (see the NeoFly documents/discord for help on this), or manually adjust the values to suit.
 
 ### Auto-Market Search:
 Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on the list of ICAOs you've chosen in the Auto-Market tab.
+1. Enter your Center ICAO and your desired distance limit.
+1. Press the *List* button. The script will find any Missions originating from the Center ICAO, and give you a list of destinations so that you may search the destination markets.
+    1. Note: This of course means that your Center ICAO needs to have missions available in the database.
+	1. ICAOs that already have valid markets (don't need to be searched) will not appear in the list.
 1. Select the ICAO(s) you wish to search.
-    1. You can Ctrl+Click or Shift+Click to multi-select entries in the table above. You can also change your entries while the Hotkey is active.
+    1. You can Ctrl+Click or Shift+Click to multi-select entries in the table above.
+1. Press *Load for Entry*.
+    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
 1. Ensure your cursor is in the ICAO edit box in the NeoFly Market tab. 
 1. When you press the hotkey, it will go through each ICAO you've selected above, doing the following:
     1. Send Ctrl+A to highlight any text in the ICAO box
@@ -51,38 +69,41 @@ Automatically fills in the Market ICAO box in NeoFly and presses Enter, based on
     1. Send the Enter key to search the Market
     1. Remove the already-searched ICAO from the list above.
 1. Press the hotkey again, and it will do the same with the next selected ICAO.
-1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the Hotkey will be disabled.
-    1. The Hotkey is only active after you've pressed Load for Entry. Active status is affirmed by a tooltip appearing by your cursor.
+1. When the selected list is exhausted, or the user presses the *Stop Entry* button, the entry script will be disabled. Alternatively, you can use the stop Hotkey.
+1. There is also an *Auto Entry* mode, where you need only press the hotkey once and the script will automatically enter remaining ICAOs without you pressing the hotkey repeatedly.
+    1. Adjust the *Delay in Auto Entry* time to your liking.
+    1. Note: NeoFly can accept and process the searches very quickly, however it will visually look like the markets are not being generated fast enough. By default the time is set to 1500ms (1.5s) to allow enough time for the NeoFly GUI to process the market, but this is not necessary. A delay of 100 has worked in testing.
 
 ### Market Finder:
 Displays where you can find Markets selling or buying the Good you specify. Useful for finding somewhere to sell your load of goods.
 1. Enter the information about the good(s) you wish to find. The *Name* field uses a LIKE search, meaning "pho" will match with "Phone" as well as "Telephoto Lens"
-    1. By default, the Departure ICAO will be the location of the last Plane you chose from the Hanagar in the Goods Optimization page.
 	1. If you leave this blank (or the ICAO is invalid), the distance calculations will not be performed.
 1. Press the search button.
-1. First view shows the ICAOs which are BUYING those Goods from the user, second view shows the ICAOs which will SELL those Goods to the user.
 
 ### Aircraft Market:
 This tool searches the AircraftMarket table for available Planes for sale. It displays the prices and (approximate) distance to the airport selling the plane. It also estimates your ONE-WAY travel cost of paying to bring your Pilot to the airport selling the plane.
-1. Go to the Aircraft Market tab.
-1. Use the text field to enter the name (or part of a name) of the aircraft. The name must match (or match part of) the name of the plane as entered in the NeoFly database. For example, "Cessna" or "CJ4".
+1. Use the text field to enter the name (or part of a name) of the aircraft. The *Aircraft Name* field uses a LIKE search, meaning "Cub" will match with "XCub" as well as "Savage Cub"
 1. Press search. Results will be shown, with the Distance based on your Pilot's current position.
+1. The *Compare Models* button displays one of each model plane to allow you to compare their stats (*Aircraft Name* field is ignored for this to show all available models).
+    1. Note: Lowest Price will default to the Base Cost if no planes of that type are available for sale.
 
 ### Mission Generator:
 This lets you generate custom missions for use in NeoFly. 
 ###### WARNING: All previous tools were designed to open the database read-only. This means they will not harm or modify your database. The mission generator opens the database with WRITE priviliges. Putting incorrect information here, or simply bad programming of the tool (equally if not more likely), means that your game may crash when attempting to load the mission you've added. I suggest noting down the generated IDs, so that you can find and delete it in the database if necessary.
 ###### Backup your database. You can use the built-in button, or back it up yourself. I recommend both.
 1. Go to the mission generator tab.
-1. Backup your database.
+1. *Backup your database.*
 1. Choose your Departure ICAO (must be a valid ICAO), and your Arrival (which can be an ICAO for normal missions, or any text you'd like for Tourist/Drop Zone missions).
 1. Fill in the Type, Rank, Pax, Cargo, Request and Tooltip texts, reward, and experience. Put whatever text you'd like for Request (appears in the mission browser in NeoFly), and the ToolTip Text (which as far as I can tell, appears when you hover over the mission on the map).
 1. Press the "Find Lat/Lon" button. This will automatically find the coordinates of the Departure and Arrival ICAOs, if they can be found in the database. Custom text for Arrival will not auto-populate, and you must enter the correctly formatted coordinates for the arrival in this case.
 1. Press the "Calculate Distance" button. This will determine the distance, in nautical miles, based on your coordinates.
 1. Click the "Preview" button. This will generate the misson(s) you've detailed and display the results, exactly as they would be entered into the database.
 1. Confirm that the preview looks correct.
-1. MAKE SURE YOU BACKED UP THAT DATABASE!
+1. *Backup your database.*
 1. Double-click a row to commit it to the database. The row will be removed from view and the ID of the row will be added to the text below the list for reference.
 1. Search your ICAO for the new mission in NeoFly, and try it out!
+    1. Note: use Search, not Reset, in NeoFly as Reset will overwrite the mission you just made.
+1. Don't save over your backups until you're sure that NeoFly has accepted your new mission(s).
 
 ### Monitor Hangar:
 When enabled, will alert you via Discord Webhook when a plane returns to the Hangar and is available for use.
@@ -92,22 +113,26 @@ When enabled, will alert you via Discord Webhook when a plane returns to the Han
     1. The default can be changed in the INI file.
 1. Press the Enable button.
 1. Your currently available (status=0) Planes will show up in the Hangar view. Any active Hired Jobs (from the rentJobs table in the database) will show up in the Hired Jobs view.
-1. Once enabled, the script will check for changes to the Hangar view once per minute. If a Plane gets added to the view, that means it must have been recently made available for use. The script will then send a message via Webhook saying which Plane(s) became available.
+1. Once enabled, the script will check for changes to the Hangar view at the Refresh Interval. If a Plane gets added to the view, that means it must have been recently made available for use. The script will then send a message via Webhook saying which Plane(s) became available.
+    1. If you check the Offline Mode box, the script will not rely on the Hangar view to change. It will monitor the Hired Jobs, and send the notification when the job is expected to have expired. This means that NeoFly does not have to be open/running for the notifications to be sent. It's also not that accurate, and might be early or late.
+	1. Note: if NeoFly IS running, and you are in Offline mode, it's possible to miss the notification (since the Hired Job will be removed from the view, and unable to be checked).
 1. Messages will only be sent once per status change.
 
 ### Close/Exit:
-1. Either right-click the AutoHotkey script's icon (white H on a green square background) in your taskbar and click "Exit"), or simply close the GUI window via the normal Close "X" button.
+1. Either right-click the script's icon in your taskbar and click "Exit", or simply close the GUI window via the normal Close "X" button.
 1. You do not need to Disconnect from the database via the GUI; this will be done automatically when you close the GUI/script normally.
 
 ## Credits:
 1. 'AHK-Just-Me' for the SQLite interface for AHK: https://github.com/AHK-just-me/Class_SQLiteDB
 1. 'ymg' from the AHK forums for the Vincenty Method distance calculations and script: https://autohotkey.com/board/topic/88476-vincenty-formula-for-latitude-and-longitude-calculations/
 1. Whoever wrote the SQLite DLLs: https://www.sqlite.org/download.html
-1. 'Sbeuh34' for the OG mission generator and the fantastic multiplayer functionality: https://github.com/sbeuh34
+1. 'Sbeuh34' for the OG mission generator and the multiplayer functionality: https://github.com/sbeuh34
 1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Known Issues:
 - Localization of dates will continue to be an issue until all localized dates are either successfully converted, or the hackjob work-arounds cover them all.
+- Auto-Timestamp chooser when connecting to a database only looks at the newest few entries in the database. Some databases have multiple timestamp formats for the same field depending on NeoFly version used to create them. Manually check your DB if you still have issues.
+- Auto-Timestamp chooser basically doesn't work with brand-new databases, since the Markets are not populated yet so there are no dates to check.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 
 ## New Issues:
@@ -115,20 +140,47 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 
 ## Planned Updates:
 - Soon:
-    - Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
-	- Option to use the Monitor Hangar feature when NeoFly is closed (will use the ETA instead of looking for hangar status changes)
+	- Option to include ALL missions (not just ones with destination markets) in the Goods Optimizer.
+	- Show a summary of your 'company' showing daily income, # missions flown, etc.
 - Not as soon:
     - Randomize mission generation further.
     - Add new mission types: Airline, Humanitarian, SAR, Intercept
 	- Remove some of the unneccessary columns in various views; they're useful for debugging these early versions, but useless for most people.
-- Maybe:
-    - Speed up the goods optimizer.
-    - Upgrade the Auto-Market function so that the user doesn't need to press the hotkey repeatedly.
+- Only a maybe:
+	- Ability to resize the GUI. AHK is not friendly to this, so don't get your hopes up.
 	
 ## Feature Requests:
 Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
 
 ## Change Log:
+
+### v0.5.0
+- Added an automatic timestamp format picker and check.
+- Added "Offline Mode" to *Hangar Monitor*
+- Fixed bugs with the *Auto-Market* thinking the list was empty
+- Added a simple check to see if the Market you've chosen in the Goods Optimizer may expire before you can reach it.
+- Added a Splash Screen on startup since startup with AutoConnect enabled now takes a moment.
+- Added a "go back to centerICAO" feature to the Auto-Market; will now re-enter your Center ICAO on the last hotkey press.
+- Renamed a whole bunch of variables to avoid cross-talk in the global scope now that there are timers and asynchronous code execution. Should avoid unexpected behaviour bugs.
+- Added functionality for multiple GUIs in the future.
+- Added a "No Reformatting" option to the timestamp formats. For those few with SQLite compatible dates in the DB, this will increase performance.
+- Filtered Optimizer to exclude goods that they no longer have any of (if you've previously cleaned them out, for instance)
+- Fixed bug with Auto-Market where ICAOs that already have markets were being displayed in some Locales
+- Added existing goods to plane weight calculation and sim payload numbers. Useful if you've already loaded some stuff and lose track, or if you're taking off with goods leftover etc.
+- Added the new TailNumber feature to views and some information text. This means that NeoFly 2.12+ is required so that hangar.tailNumber is populated in the database.
+- Reconfigured loading of Goods Optimizer list views slightly - should improve performance.
+- Added Right-Click menu to Optimizer mission views for some QoL quick functions.
+- Added a warning when the user refreshes missions/optimal goods when the plane selected has changed critical parameters (fuel, onboard cargo, location, availability).
+- Added more descriptive text for when results are unavailable in Goods Optimizer.
+- Added "Allow Overweight" in Optimizer. This lets you max out NeoFly's Goods+Mission weight, taking advantage of the fact that it doesn't subtract Fuel Weight from the Max Payload of the plane.
+- Limited the Auto-Timestamp check to 300 rows to ensure NeoFly's current/newest timestamps are what gets formatted correctly.
+- Increased performance of Timestamp list view, queries. Leads to lower "load times".
+- Added a Summary GUI to the Optimizer (click the *Summary* button at the top of the Optimizer). Useful for overlaying on NeoFly.
+- Updated text in Optimizer more intelligently.
+- Added "Tower" to the list of Arrival filters in the Optimizer.
+- Added a *Compare Models* button to the Aircraft Market tab which displays one of each model plane to allow you to compare their stats. Also provides the lowest price found in the AircraftMarket for each plane, which you can then search specifically to locate.
+- Added a more automatic *Auto-Market* function.
+- Corrected wrong handling of 12AM timestamps.
 
 ### v0.4.0
 - Added filters for NeoFly missions list in Optimizer.
