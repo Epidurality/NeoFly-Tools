@@ -5,10 +5,8 @@
 ; Tested on:        Windows 10 64-bit
 ; Author:           Epidurality
 
-versionNumber := "0.5.0"
+versionNumber := "0.6.0b"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
-
-;iniPath := "debug.ini"
 
 ; AHK Settings
 {
@@ -56,7 +54,7 @@ IniRead, autoMarketStopHotkey, %iniPath%, Setup, autoMarketStopHotkey, NumpadSub
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
 }
 
-; ==== GUI ====
+; ==== Main GUI ====
 
 ; Icon setup
 {
@@ -152,7 +150,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
-	Gui, Add, Button, xm+100 y105 h20 gGoods_Summary, Summary
+	Gui, Add, Button, xm+100 y105 h20 gSummary_Show, Summary
 	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
 	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
@@ -366,8 +364,31 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled,
 }
 
-; Main initialization
+; ==== Summary GUI ====
 {
+	Gui, Summary:New
+	Gui, Summary:Default
+	Gui, +AlwaysOnTop -MinimizeBox -MaximizeBox
+	Gui, Add, Text, xm, Mission:
+	Gui, Add, Text, xm+20 w280 vSummary_MissionInfo, Summary_MissionInfo
+	Gui, Add, Text, xm+ y+10, Aircraft:
+	Gui, Add, Text, xm+20 w280 vSummary_PlaneInfo, Summary_PlaneInfo
+	Gui, Font, bold
+	Gui, Add, Text, xm y+20, Goods to buy:
+	Gui, Font
+	Gui, Add, ListView, xm y+5 w280 h150 vSummary_ToBuyLV, Good|Qty
+	Gui, Add, Text, xm y+20 w60, Fuel:
+	Gui, Add, Text, x+5 w220 vSummary_FuelInfo, Summary_FuelInfo
+	Gui, Add, Text, xm w60, Payload:
+	Gui, Add, Text, x+5 w220 vSummary_PayloadInfo, Summary_PayloadInfo
+	Gui, Add, Text, xm y+10 cRed w280, Summary_WarningText
+	Gui, Add, Button, x65 y+20 w150 gSummaryGuiClose, Close
+	Gui, Add, Button, x65 y+20 w150 gSummary_Buy vSummary_Buy, Buy for Me!
+}
+
+; ==== Main initialization ====
+{
+	Gui, Main:Default
 	SB_SetText("Connect to a database using the Settings tab.")
 	If (autoConnect) {
 		GuiControl, Splash:, Splash_Progress, 25
@@ -384,8 +405,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Show, h700 w960, NeoFly Tools
 	Gui, Splash:Destroy
 	Gui, Main:Default
-	return
 }
+
+return ; End of auto-run at startup.
 
 ; GUI functions
 MainGuiClose:
@@ -929,9 +951,7 @@ Goods_RefreshMissions:
 					dep.name AS Good,
 					replace(dep.unitWeight, ',', '.') AS [Weight/u],
 					dest.unitPrice - dep.unitPrice AS [Profit/u],
-					MIN(dest.quantity, dep.quantity) AS [Max Qty],
-					%qDepRefreshDateField% AS depRefreshFormatted,
-					%qDestRefreshDateField% AS destRefreshFormatted
+					MIN(dest.quantity, dep.quantity) AS [Max Qty]
 				FROM
 					goodsMarket AS dep
 				INNER JOIN
@@ -945,8 +965,6 @@ Goods_RefreshMissions:
 					AND dest.location='%qArrival%'
 					AND dep.tradeType=0
 					AND dest.tradeType=1
-					AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
-					AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 				ORDER BY [Profit/u]/[Weight/u] DESC
 			)
 			If !(NFMissionsGoodsResult := SQLiteGetTable(DB, NFMissionsGoodsQuery)) {
@@ -1074,9 +1092,7 @@ Goods_RefreshMissions:
 						dep.name AS Good,
 						replace(dep.unitWeight, ',', '.') AS [Weight/u],
 						dest.unitPrice - dep.unitPrice AS [Profit/u],
-						MIN(dest.quantity, dep.quantity) AS [Max Qty],
-						%qDepRefreshDateField% AS depRefreshFormatted,
-						%qDestRefreshDateField% AS destRefreshFormatted				
+						MIN(dest.quantity, dep.quantity) AS [Max Qty]		
 					FROM
 						goodsMarket AS dep
 					INNER JOIN goodsMarket AS dest 
@@ -1091,8 +1107,6 @@ Goods_RefreshMissions:
 						AND dest.location='%qArrival%'
 						AND dep.tradeType=0
 						AND dest.tradeType=1
-						AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
-						AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 					ORDER BY [Profit/u]/[Weight/u] DESC
 				)
 				If !(TradesGoodsResult := SQLiteGetTable(DB, TradesGoodsQuery)) {
@@ -1304,7 +1318,8 @@ Goods_RefreshMarket:
 			MIN(dest.quantity, dep.quantity) AS [Max Qty],
 			0 AS [Buy Cost],
 			MIN(dest.quantity, dep.quantity)*(dest.unitPrice-dep.unitPrice) AS [Max Profit],
-			replace(dep.unitWeight, ',', '.')*MIN(dest.quantity, dep.quantity) AS [Max Weight]
+			replace(dep.unitWeight, ',', '.')*MIN(dest.quantity, dep.quantity) AS [Max Weight],
+			dep.id AS ID
 		FROM
 			goodsMarket AS dep
 		INNER JOIN
@@ -1406,7 +1421,8 @@ Goods_CheckHangar:
 	return
 }
 
-Goods_Summary:
+; == Summary Window Subroutines ==
+Summary_Show:
 {
 	GoSub Goods_CheckHangar
 	Gui, Main:Default
@@ -1415,28 +1431,41 @@ Goods_Summary:
 	GuiControlGet, Goods_PlaneInfo
 	GuiControlGet, Goods_FuelInfo
 	GuiControlGet, Goods_PayloadInfo
-	Gui, Summary:New
-	Gui, Summary:+AlwaysOnTop -MinimizeBox -MaximizeBox
-	Gui, Summary:Add, Text, xm, % Goods_MissionInfo
-	Gui, Summary:Add, Text, xm, % Goods_PlaneInfo
-	Gui, Summary:Font, bold
-	Gui, Summary:Add, Text, xm y+20, Goods to buy:
-	Gui, Summary:Font
-	; Get list of goods
+	GuiControlGet, Goods_DepartureICAO
+	; Get information at time of summary creation, so that changes in the Main GUI don't change values this portion will use.
+	SummaryData := {planeID: Plane.id, departureICAO: Goods_DepartureICAO, goodsCount: 0, goodsList: []}
+	; Change the GUI contents
+	Gui, Summary:Default
+	GuiControl, Enable, Summary_Buy
+	GuiControl, Text, Summary_PayloadInfo, % Goods_PayloadInfo
+	GuiControl, Text, Summary_MissionInfo, % Goods_MissionInfo
+	GuiControl, Text, Summary_PlaneInfo, % Goods_PlaneInfo
+	GuiControl, Text, Summary_FuelInfo, % Goods_FuelInfo
+	GuiControl, Text, Summary_WarningText, % Goods_WarningText
+	Gui, ListView, Summary_ToBuyLV
+	LV_Delete()
+	; Populate list of goods
 	Gui, Main:Default
 	Gui, ListView, Goods_TradesLV
 	Loop % LV_GetCount() {
+		Gui, Main:Default
+		Gui, ListView, Goods_TradesLV
 		LV_GetText(lvGood, A_Index, 1)
 		LV_GetText(lvQty, A_Index, 10)
-		Gui, ListView, Goods_TradesLV
-		Gui, Summary:Add, Text, xm w75, % lvGood
-		Gui, Summary:Add, Text, x+5, % lvQty
-	}	
-	Gui, Summary:Add, Text, xm y+30, % "Fuel:`t`t" . Goods_FuelInfo
-	Gui, Summary:Add, Text, xm, % "Payload:`t" . Goods_PayloadInfo
-	Gui, Summary:Add, Button, w150 x65 gSummaryGuiClose, Close
-	Gui, Summary:Add, Text, xm cRed w280, % Goods_WarningText
-	; If possible, find where NeoFly is and put the summary on top of it.
+		LV_GetText(lvID, A_Index, 14)
+		SummaryData.goodsList[A_Index,"id"] := lvID
+		SummaryData.goodsList[A_Index,"quantity"] := lvQty
+		SummaryData.goodsCount := A_Index
+		Gui, Summary:Default
+		Gui, ListView, Summary_ToBuyLV
+		LV_Add("", lvGood, lvQty)
+	}
+	Gui, Summary:Default
+	Gui, ListView, Summary_ToBuyLV
+	LV_ModifyCol(1, "AutoHdr") ; Auto-size columns
+	LV_ModifyCol(2, "AutoHdr")
+	Gui, Main:Default
+	; Get the position to show the Summary, either on NeoFly or on the Tools.
 	WinGet, nfState, MinMax, ahk_exe NeoFly.exe
 	If (nfState=1 || nfState=0) { ; 1=maximized, 0=shown but not maximized
 		WinGetPos, nfX, nfY, nfW, nfH, ahk_exe NeoFly.exe
@@ -1450,10 +1479,177 @@ Goods_Summary:
 	return
 }
 
-; == Summary window Subroutines ==
+Summary_Buy:
+{
+	Gui, Summary:Default
+	Gui, -AlwaysOnTop
+	Gui, Main:Default
+	GuiControlGet, Settings_GoodsDateFormat
+	; Get the goods information required for database changes
+	If (SummaryData.goodsCount<1) {
+		return
+	}
+	GoodsSelectQuery := ""
+	Loop % SummaryData.goodsCount {
+		qQty := SummaryData.goodsList[A_Index,"quantity"]
+		If (qQty<=0) { ; IT was a viable good but we didn't buy any
+			Continue ; Skip this loop
+		}
+		qID := SummaryData.goodsList[A_Index,"id"]
+		qPlaneID := SummaryData.planeID
+		qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "refreshdate")
+		If (A_Index>1) {
+		GoodsSelectQuery := GoodsSelectQuery . "`nUNION ALL`n"
+		}
+		GoodsSelectQueryNext =
+		(
+			SELECT id, %qPlaneID% AS planeid, name, type, unitprice AS buyprice, %qQty% AS quantity, location AS locationbuy, unitweight*%qQty% AS totalweight, unitweight, 'a' AS expirationdate, ttl
+			FROM goodsMarket
+			WHERE id = %qID%			
+		)
+		GoodsSelectQuery := GoodsSelectQuery . GoodsSelectQueryNext
+	}
+	If !(GoodsSelectResult := SQLiteGetTable(DB, GoodsSelectQuery)) {
+		return
+	}
+	; Determine expiration dates
+	RegRead, dateFormat, HKEY_CURRENT_USER\Control Panel\International, sShortDate
+	RegRead, timeFormat, HKEY_CURRENT_USER\Control Panel\International, sTimeFormat
+	timestampFormat := dateFormat . " " . timeFormat
+	totalCost := 0
+	Loop % GoodsSelectResult.RowCount {
+		GoodsSelectResult.Next(GoodsSelectRow)
+		goodExpiration := A_Now
+		EnvAdd, goodExpiration, GoodsSelectRow[11], Hours
+		FormatTime, goodExpiration, %goodExpiration%, %timestampFormat%
+		GoodsSelectRow[10] := goodExpiration
+		totalCost := totalCost + GoodsSelectRow[5]*GoodsSelectRow[6]
+	}
+	GoodsSelectResult.Reset()
+	; Confirm to the user
+	MsgBox, 36, Confirm Goods Purchase, Are you sure you want to purchase these goods?`n`nTotal cost will be:`n`t`t$%totalCost%
+	IfMsgBox Yes
+	{
+		qPilotID := Pilot.id
+		Loop % GoodsSelectResult.RowCount {
+			GoodsSelectResult.Next(GoodsSelectRow)
+			lvGMID := GoodsSelectRow[1]
+			lvPlaneID := GoodsSelectRow[2]
+			lvName := GoodsSelectRow[3]
+			lvType := GoodsSelectRow[4]
+			lvBuyPrice := GoodsSelectRow[5]
+			lvQuantity := GoodsSelectRow[6]
+			lvLocationBuy := GoodsSelectRow[7]
+			lvTotalWeight := GoodsSelectRow[8]
+			lvUnitWeight := GoodsSelectRow[9]
+			lvExpirationDate := GoodsSelectRow[10]
+			lvCargoID := "(SELECT IFNULL(id,1) FROM cargo ORDER BY id DESC LIMIT 1)+1"
+			lineCost := ROUND(lvBuyPrice*lvQuantity)
+			Gui, Main:Default
+			CargoBuyQuery =
+			(
+				INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
+				VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), %lvUnitWeight%, '%lvExpirationDate%');
+				
+				UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
+				
+				UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;
+			)
+			DB.CloseDB()
+			GuiControlGet, Settings_DBPath
+			If (!DB.OpenDB(Settings_DBPath, "W", false)) {
+				MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+				return
+			}
+			If (!DB.Exec(CargoBuyQuery)) {
+				MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+				IfMsgBox Yes
+				{
+					clipboard := CargoBuyQuery
+				}
+			}
+			DB.CloseDB()
+			If (!DB.OpenDB(Settings_DBPath, "R", false)) {
+				MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+				return
+			}
+		}
+		Gui, Summary:Default
+		LV_Clear("Summary_ToBuyLV")
+		GuiControl, Disable, Summary_Buy
+	}
+	Gui, Summary:Default
+	Gui, +AlwaysOnTop
+	return
+	/* FOR TESTING
+	Gui, Confirmation:New
+	Gui, Confirmation:Add, ListView, w800 h150 vConfirmation_CargoLV
+	Gui, Confirmation:Add, Button, gConfirmation_Confirm, Confirm and Buy
+	LV_ShowTable(GoodsSelectResult, "Confirmation_CargoLV")
+	Gui, Confirmation:Show
+	*/
+}
+
 SummaryGuiClose:
 {
-	Gui, Summary:Destroy
+	Gui, Summary:Hide
+	return
+}
+
+; == Confirmation Window Subroutines == 
+Confirmation_Confirm:
+{
+	Gui, Confirmation:Default
+	Gui, ListView, Confirmation_CargoLV
+	qPilotID := Pilot.id
+	Loop % LV_GetCount() {
+		Gui, Confirmation:Default
+		Gui, ListView, Confirmation_CargoLV
+		LV_GetText(lvGMID, A_Index, 1)
+		LV_GetText(lvPlaneID, A_Index, 2)
+		LV_GetText(lvName, A_Index, 3)
+		LV_GetText(lvType, A_Index, 4)
+		LV_GetText(lvBuyPrice, A_Index, 5)
+		LV_GetText(lvQuantity, A_Index, 6)
+		LV_GetText(lvLocationBuy, A_Index, 7)
+		LV_GetText(lvTotalWeight, A_Index, 8)
+		LV_GetText(lvUnitWeight, A_Index, 9)
+		LV_GetText(lvExpirationDate, A_Index, 10)
+		lvCargoID := "(SELECT IFNULL(id,1) FROM cargo ORDER BY id DESC LIMIT 1)+1"
+		lineCost := ROUND(lvBuyPrice*lvQuantity)
+		Gui, Main:Default
+		CargoBuyQuery =
+		(
+			INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
+			VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), %lvUnitWeight%, '%lvExpirationDate%');
+			
+			UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
+			
+			UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;
+		)
+		DB.CloseDB()
+		GuiControlGet, Settings_DBPath
+		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
+			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+			return
+		}
+		If (!DB.Exec(CargoBuyQuery)) {
+			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+			IfMsgBox Yes
+			{
+				clipboard := CargoBuyQuery
+			}
+		}
+		DB.CloseDB()
+		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
+			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+			return
+		}
+	}
+	Gui, Confirmation:Destroy
+	Gui, Summary:Default
+	LV_Clear("Summary_ToBuyLV")
+	GuiControl, Disable, Summary_Buy
 	return
 }
 
@@ -2479,3 +2675,35 @@ Webhook_PostSend(url, postdata) {
 		MsgBox % "Could not send webhook.`n`nError:`n" . e
 	}
 }
+
+GetDateFormat(dateSample) {
+	return
+}
+
+
+/*
+NOTES RE: DATE CODES:
+This is just here to remind me what different date codes have been shown so far.
+
+Mission					|		Goods		
+-----------------------------------------------
+2021-01-25 17:51:55			20/01/2021 20:48:15	
+27/10/2020 02:38:30			03/12/2020 16:15:32			
+22.11.2020 00:00:43			01.12.2020 16:37:53			
+2021-01-21 17:01:29			3/02/2021 11:33:55 AM		
+2021-02-19 04:38:58			2021-02-13 12:30:58 PM
+2021-01-23 23:17:35			1/16/2021 11:48:30 PM
+30/10/2020 06:03:34			30/11/2020 12:51:04
+
+Assumptions:
+
+Date format always follows HKEY_CURRENT_USER\Control Panel\International, sShortDate
+Time format follows HKEY_CURRENT_USER\Control Panel\International, sTimeFormat ONLY FOR GOODS. Missions seem to always use 24hr format.
+
+*/
+
+
+
+
+
+
