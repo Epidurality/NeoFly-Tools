@@ -78,7 +78,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 		Menu, Tray, Add, Reload, ReloadTool
 		Menu, Tray, Add, Close, MainGuiClose
 	}
-	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar
+	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar|Company Manager
 	Gui, Add, StatusBar
 }
 
@@ -363,6 +363,12 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, xm+10 y+20, Hired Jobs:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HiredLastChecked, ---
 	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled,
+}
+
+; Gui Company Manager tab
+{
+	Gui, Tab, Company Manager
+	Gui, Add, Button, xm+10 y70 gCompany_CleanLoans, Clean Up Loans
 }
 
 ; ==== Summary GUI ====
@@ -1562,7 +1568,7 @@ Summary_Buy:
 			lvCargoID := "(SELECT IFNULL(id,0) FROM cargo ORDER BY id DESC LIMIT 1)+1"
 			lvLoanID := "(SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1"
 			FormatTime, lvStartDate, , %timestampFormat24Force%
-			lvDuration := FLOOR(lineCost/100000)
+			lvDuration := FLOOR(lineCost/10000)
 			Gui, Main:Default
 			CargoBuyQuery =
 			(
@@ -1584,7 +1590,7 @@ Summary_Buy:
 		LoanOffsetQuery = 
 		(
 			INSERT INTO loans (id, ownerId, amount, interestRate, startDate, duration, statusId, billingInterval)
-			VALUES (%lvLoanID%, %qPilotID%, %totalCost%, 0.00, '%lvStartDate%', %lvDuration%, 1, 30)
+			VALUES (%lvLoanID%, %qPilotID%, %totalCost%, 0, '%lvStartDate%', %lvDuration%, 1, 30)
 		)
 		If (!DB.Exec(LoanOffsetQuery)) {
 			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
@@ -2510,6 +2516,46 @@ Monitor_Disable:
 	return
 }
 
+; == Company Manager Tab Subroutines == 
+Company_CleanLoans:
+{
+	Gui, Main:Default
+	MsgBox, 36, Confirm Loan Wipe, Are you sure you want to do this?`n`nThis will wipe the Loans and LoanPayments tables of all records of any loans which have a "paid" status for this pilot.`n`nThis information will be non-recoverable.`n`nRecommend backing up your database first.
+	IfMsgBox No
+	{
+		return
+	}
+	qOwnerId := Pilot.id
+	CleanLoansQuery = 
+	(
+		DELETE FROM loanpayments WHERE loanId IN (
+			SELECT id FROM loans WHERE ownerID = %qOwnerID% AND statusID = 2 );
+			
+		DELETE FROM loans WHERE ownerID = %qOwnerID% AND statusID = 2;
+	)
+	DB.CloseDB()
+	GuiControlGet, Settings_DBPath
+	If (!DB.OpenDB(Settings_DBPath, "W", false)) {
+		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+		return
+	}
+	If (!DB.Exec(CleanLoansQuery)) {
+		MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+		IfMsgBox Yes
+		{
+			clipboard := CleanLoansQuery
+		}
+		return
+	}
+	
+	; Re-open read only
+	DB.CloseDB()
+	If (!DB.OpenDB(Settings_DBPath, "R", false)) {
+		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+		return
+	}
+}
+
 ; ==== FUNCTIONS ====
 
 ; == SQL functions ==
@@ -2689,6 +2735,19 @@ LV_Clear(LV) {
 	}
 	return
 }
+
+SQLitePreviewTable(Table) {
+	global Preview_LV
+	Gui, Preview:Destroy
+	Gui, Preview:New
+	Gui, Preview:Default
+	Gui, Preview:Add, ListView, w800 h600 Grid vPreview_LV
+	LV_ShowTable(Table, "Preview_LV")
+	Gui, Preview:Show
+	Table.Reset()
+	return
+}
+
 
 ; == Webhook functions ==
 Webhook_PostSend(url, postdata) {
