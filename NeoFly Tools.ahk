@@ -895,7 +895,8 @@ Goods_RefreshMissions:
 			a.num_runway_end_vasi AS [VASI/PAPI],
 			a.num_runway_hard AS [Hard Rwys],			
 			a.longest_runway_length AS [Rwy Len],
-			a.has_tower_object AS [Tower]			
+			a.has_tower_object AS [Tower],
+			m.missionHeading AS Hdg
 		FROM missions AS m
 		LEFT JOIN goodsMarket AS gm
 		ON gm.location=m.arrival
@@ -1516,6 +1517,7 @@ Summary_Buy:
 	RegRead, dateFormat, HKEY_CURRENT_USER\Control Panel\International, sShortDate
 	RegRead, timeFormat, HKEY_CURRENT_USER\Control Panel\International, sTimeFormat
 	timestampFormat := dateFormat . " " . timeFormat
+	timestampFormat24Force := dateFormat . " " . "HH:mm:ss"
 	totalCost := 0
 	Loop % GoodsSelectResult.RowCount {
 		GoodsSelectResult.Next(GoodsSelectRow)
@@ -1527,10 +1529,19 @@ Summary_Buy:
 	}
 	GoodsSelectResult.Reset()
 	; Confirm to the user
-	MsgBox, 36, Confirm Goods Purchase, Are you sure you want to purchase these goods?`n`nTotal cost will be:`n`t`t$%totalCost%
+	
+	MsgBox, 36, Confirm Goods Purchase, Are you sure you want to purchase these goods?`n`nTotal cost will be:`t`t $%totalCost% `n`nNOTE: Currently this script cannot directly edit your bank account, so instead it will add a loan (with 0`% interest) of this amount for you to pay later.
 	IfMsgBox Yes
 	{
 		qPilotID := Pilot.id
+		; Open DB with write privileges
+		DB.CloseDB()
+		GuiControlGet, Settings_DBPath
+		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
+			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+			return
+		}
+		; Commit each good
 		Loop % GoodsSelectResult.RowCount {
 			GoodsSelectResult.Next(GoodsSelectRow)
 			lvGMID := GoodsSelectRow[1]
@@ -1544,23 +1555,18 @@ Summary_Buy:
 			lvUnitWeight := GoodsSelectRow[9]
 			lvExpirationDate := GoodsSelectRow[10]
 			lvCargoID := "(SELECT IFNULL(id,1) FROM cargo ORDER BY id DESC LIMIT 1)+1"
-			lineCost := ROUND(lvBuyPrice*lvQuantity)
+			lvLoanID := "(SELECT IFNULL(id,1) FROM loans ORDER BY id DESC LIMIT 1)+1"
+			FormatTime, lvStartDate, , %timestampFormat24Force%
+			lvDuration := ROUND(lineCost/100000)
 			Gui, Main:Default
 			CargoBuyQuery =
 			(
 				INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
 				VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), %lvUnitWeight%, '%lvExpirationDate%');
 				
-				UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
-				
-				UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;
+				UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;			
 			)
-			DB.CloseDB()
-			GuiControlGet, Settings_DBPath
-			If (!DB.OpenDB(Settings_DBPath, "W", false)) {
-				MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-				return
-			}
+			;UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
 			If (!DB.Exec(CargoBuyQuery)) {
 				MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
 				IfMsgBox Yes
@@ -1568,14 +1574,29 @@ Summary_Buy:
 					clipboard := CargoBuyQuery
 				}
 			}
-			DB.CloseDB()
-			If (!DB.OpenDB(Settings_DBPath, "R", false)) {
-				MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-				return
+		}
+		; Temporary work-around: make a loan for the same amount of the goods we basically just cheated in.
+		LoanOffsetQuery = 
+		(
+			INSERT INTO loans (id, ownerId, amount, interestRate, startDate, duration, statusId, billingInterval)
+			VALUES (%lvLoanID%, %qPilotID%, %totalCost%, 0.00, '%lvStartDate%', %lvDuration%, 1, 30)
+		)
+		If (!DB.Exec(LoanOffsetQuery)) {
+			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+			IfMsgBox Yes
+			{
+				clipboard := LoanOffsetQuery
 			}
 		}
+		; Close the DB and re-open read-only.
+		DB.CloseDB()
+		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
+			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+			return
+		}
 		Gui, Summary:Default
-		LV_Clear("Summary_ToBuyLV")
+		Gui, ListView, Summary_ToBuyLV
+		LV_Delete()
 		GuiControl, Disable, Summary_Buy
 	}
 	Gui, Summary:Default
