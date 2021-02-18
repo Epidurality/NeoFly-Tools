@@ -1509,7 +1509,7 @@ Summary_Buy:
 		}
 		GoodsSelectQueryNext =
 		(
-			SELECT id, %qPlaneID% AS planeid, name, type, unitprice AS buyprice, %qQty% AS quantity, location AS locationbuy, unitweight*%qQty% AS totalweight, unitweight, 'a' AS expirationdate, ttl
+			SELECT id, %qPlaneID% AS planeid, name, type, unitprice AS buyprice, %qQty% AS quantity, location AS locationbuy, REPLACE(unitweight, ',', '.')*%qQty% AS totalweight, unitweight, 'a' AS expirationdate, ttl
 			FROM goodsMarket
 			WHERE id = %qID%			
 		)
@@ -1559,15 +1559,15 @@ Summary_Buy:
 			lvTotalWeight := GoodsSelectRow[8]
 			lvUnitWeight := GoodsSelectRow[9]
 			lvExpirationDate := GoodsSelectRow[10]
-			lvCargoID := "(SELECT IFNULL(id,1) FROM cargo ORDER BY id DESC LIMIT 1)+1"
-			lvLoanID := "(SELECT IFNULL(id,1) FROM loans ORDER BY id DESC LIMIT 1)+1"
+			lvCargoID := "(SELECT IFNULL(id,0) FROM cargo ORDER BY id DESC LIMIT 1)+1"
+			lvLoanID := "(SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1"
 			FormatTime, lvStartDate, , %timestampFormat24Force%
 			lvDuration := FLOOR(lineCost/100000)
 			Gui, Main:Default
 			CargoBuyQuery =
 			(
 				INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
-				VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), %lvUnitWeight%, '%lvExpirationDate%');
+				VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), '%lvUnitWeight%', '%lvExpirationDate%');
 				
 				UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;			
 			)
