@@ -94,7 +94,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 ; Context menus
 {
 	Menu, MissionsContextMenu, Add, Use As Departure, MissionsContext_UseAsDeparture
-	Menu, MissionsContextmenu, Add, Market Finder, MissionsContext_MarketFinder
+	Menu, MissionsContextMenu, Add, Market Finder, MissionsContext_MarketFinder
 	
 	Menu, TradeMissionsContextMenu, Add, Use As Departure, TradeMissionsContext_UseAsDeparture
 	Menu, TradeMissionsContextMenu, Add, Market Finder, TradeMissionsContext_MarketFinder
@@ -150,7 +150,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
-	Gui, Add, Button, xm+100 y105 h20 gSummary_Show, Summary
+	Gui, Add, Button, xm+100 y105 h20 w150 gSummary_Show, Summary / AutoBuy
 	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
 	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
@@ -168,7 +168,8 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalHard gGoods_RefreshMissions, Hard Rwy
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalTower gGoods_RefreshMissions, Tower
 	Gui, Add, Text, x+20, Min Rwy Len.
-	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen gGoods_RefreshMissions, 1000
+	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen, 1000
+	Gui, Add, Checkbox, x+5 vGoods_AutoRwyLen, Auto`nLen
 
 	Gui, Add, Button, xm+10 y+0 gGoods_RefreshMissions, Refresh Missions
 	Gui, Add, Text, x+20, Goods Filters:
@@ -725,6 +726,7 @@ Goods_HangarLVClick:
 		}
 		Gui, Main:Default
 		GuiControlGet, Goods_IgnoreOnboardCargo
+		GuiControlGet, Goods_AutoRwyLen
 		; Load the Plane info into the global vars for other things to use
 		Gui, ListView, Goods_HangarLV
 		LV_GetText(lvID, A_EventInfo, 1)
@@ -737,6 +739,9 @@ Goods_HangarLVClick:
 		LV_GetText(lvMaxFuel, A_EventInfo, 11)
 		LV_GetText(lvCruiseSpeed, A_EventInfo, 13)
 		LV_GetText(lvOnboardCargo, A_EventInfo, 14)
+		If (Goods_AutoRwyLen) {
+			GuiControl, Text, Goods_ArrivalRwyLen, % CEIL((1300*Ln(lvPayload)-7700)/500)*500+500
+		}
 		Plane.id := lvId
 		Plane.name := lvName . " " . lvTailNum
 		Plane.payload := lvPayload
@@ -1557,7 +1562,7 @@ Summary_Buy:
 			lvCargoID := "(SELECT IFNULL(id,1) FROM cargo ORDER BY id DESC LIMIT 1)+1"
 			lvLoanID := "(SELECT IFNULL(id,1) FROM loans ORDER BY id DESC LIMIT 1)+1"
 			FormatTime, lvStartDate, , %timestampFormat24Force%
-			lvDuration := ROUND(lineCost/100000)
+			lvDuration := FLOOR(lineCost/100000)
 			Gui, Main:Default
 			CargoBuyQuery =
 			(
