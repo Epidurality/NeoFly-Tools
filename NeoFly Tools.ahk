@@ -177,14 +177,17 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked gGoods_RefreshMissions, Fragile
 	Gui, Add, Checkbox, x+20 vGoods_IncludePerishable Checked gGoods_RefreshMissions, Perishable
 	Gui, Add, Checkbox, x+20 vGoods_IncludeNormal Checked gGoods_RefreshMissions, Normal
-	Gui, Add, CheckBox, x+40 vGoods_AllowOverweight gGoods_ChangeOverweight, Allow Overweight of:
-	Gui, Add, Edit, x+0 vGoods_MaxOverweight gGoods_ChangeOverweight w80 h20 Disabled, 999999
+	Gui, Add, CheckBox, x+20 vGoods_Overweight gGoods_OverweightToggle, Overweight:
+	Gui, Add, Edit, x+0 vGoods_MaxOverweight gGoods_OverweightToggle w50 h20 Disabled, 99999
 	Gui, Add, Text, x+0, lbs
+	Gui, Add, Text, x+20, Max Range:
+	Gui, Add, Edit, x+0 vGoods_MaxRange w40 h20, 9999
+	Gui, Add, Checkbox, x+5 vGoods_AutoMaxRange, Auto Range
 	
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
 	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions
-	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show ALL NF Miss. (SLOW)
+	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show Missions w/o Trades
 	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick
 
 	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
@@ -709,7 +712,8 @@ Goods_RefreshHangar:
 			aircraftdata.FuelCaplbs AS [Max Fuel],
 			hangar.Qualification,
 			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)],
-			IFNULL(onboardCargo.totalCargo,0) AS [Onboard Cargo (lbs)]
+			IFNULL(onboardCargo.totalCargo,0) AS [Onboard Cargo (lbs)],
+			hangar.Rangenm AS Range
 		FROM hangar 
 		INNER JOIN 
 			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
@@ -736,6 +740,7 @@ Goods_HangarLVClick:
 		Gui, Main:Default
 		GuiControlGet, Goods_IgnoreOnboardCargo
 		GuiControlGet, Goods_AutoRwyLen
+		GuiControlGet, Goods_AutoMaxRange
 		; Load the Plane info into the global vars for other things to use
 		Gui, ListView, Goods_HangarLV
 		LV_GetText(lvID, A_EventInfo, 1)
@@ -748,8 +753,12 @@ Goods_HangarLVClick:
 		LV_GetText(lvMaxFuel, A_EventInfo, 11)
 		LV_GetText(lvCruiseSpeed, A_EventInfo, 13)
 		LV_GetText(lvOnboardCargo, A_EventInfo, 14)
+		LV_GetText(lvRange, A_EventInfo, 15)
 		If (Goods_AutoRwyLen) {
 			GuiControl, Text, Goods_ArrivalRwyLen, % CEIL((1300*Ln(lvPayload)-7700)/500)*500+500
+		}
+		If (Goods_AutoMaxRange) {
+			GuiControl, Text, Goods_MaxRange, % lvRange
 		}
 		Plane.id := lvId
 		Plane.name := lvName . " " . lvTailNum
@@ -778,14 +787,27 @@ Goods_HangarLVClick:
 	return
 }
 
-Goods_ChangeOverweight:
+Goods_OverweightToggle:
 {
 	Gui, Main:Default
 	GuiControlGet, Goods_AllowOverweight
-	If (Goods_AllowOverweight) {
+	If (Goods_Overweight) {
 		GuiControl, Enable, Goods_MaxOverweight
 	} else {
 		GuiControl, Disable, Goods_MaxOverweight
+	}
+	GoSub Goods_RefreshMissions
+	return
+}
+
+Goods_LimitRangeToggle: 
+{
+	Gui, Main:Default
+	GuiControlGet, Goods_LimitRange
+	If (Goods_LimitRange) {
+		GuiControl, Enable, Goods_MaxRange
+	} else {
+		GuiControl, Disable, Goods_MaxRange
 	}
 	GoSub Goods_RefreshMissions
 	return
@@ -825,6 +847,7 @@ Goods_RefreshMissions:
 	GuiControlGet, Goods_MaxOverweight
 	GuiControlGet, Goods_ArrivalTower
 	GuiControlGet, Goods_ShowAllNFMissions
+	GuiControlGet, Goods_MaxRange
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	validMarketQuery = 
@@ -929,6 +952,7 @@ Goods_RefreshMissions:
 		ON a.ident=m.arrival
 		WHERE
 			departure='%Goods_DepartureICAO%'
+			AND m.dist <= %Goods_MaxRange%
 			AND a.num_runway_hard >= %Goods_ArrivalHard%
 			AND a.num_runway_light >= %Goods_ArrivalLights%
 			AND a.num_runway_end_ils >= %Goods_ArrivalILS%
@@ -971,6 +995,9 @@ Goods_RefreshMissions:
 		}
 		Loop % NFMissionsResult.RowCount {
 			NFMissionsResult.Next(NFMissionsRow)
+			If (NFMissionsRow[13] = "") { ; This means there was no available cargo/market, so we can skip the analysis.
+				continue
+			}
 			qDeparture := NFMissionsRow[2]
 			qArrival := NFMissionsRow[3]
 			qMissionCargo := NFMissionsRow[6]
@@ -1635,13 +1662,6 @@ Summary_Buy:
 	Gui, Summary:Default
 	Gui, +AlwaysOnTop
 	return
-	/* FOR TESTING
-	Gui, Confirmation:New
-	Gui, Confirmation:Add, ListView, w800 h150 vConfirmation_CargoLV
-	Gui, Confirmation:Add, Button, gConfirmation_Confirm, Confirm and Buy
-	LV_ShowTable(GoodsSelectResult, "Confirmation_CargoLV")
-	Gui, Confirmation:Show
-	*/
 }
 
 SummaryGuiClose:
