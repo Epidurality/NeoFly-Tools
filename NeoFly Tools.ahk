@@ -78,7 +78,8 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 		Menu, Tray, Add, Reload, ReloadTool
 		Menu, Tray, Add, Close, MainGuiClose
 	}
-	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar|Company Manager|Flight Tools
+	Gui, Add, Checkbox, x850 y5 vSettings_AlwaysOnTop gSettings_AlwaysOnTop, Always on Top
+	Gui, Add, Tab3, x0 y0 vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar|Company Manager|Flight Tools
 	Gui, Add, StatusBar
 }
 
@@ -104,6 +105,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 {
 	Gui, Main:Default
 	Gui, Tab, Settings
+	; NOTE: The "always on top" checkbox is going to be under the Settings stuff for organizational purposes, but must be created before the tabs in the Gui Setup
 	Gui, Add, Text, xm+10 y70, Database path:
 	Gui, Add, Edit, x+10 w300 vSettings_DBPath, % defaultDbPath
 	Gui, Add, Button, x+20 gSettings_Connect, Connect
@@ -725,6 +727,18 @@ Settings_TimestampPreview:
 	}
 	LV_ShowTable(TimestampsPreviewResult, "Settings_TimestampLV")
 	SB_SetText("Timestamp conversions previewed.")
+	return
+}
+
+Settings_AlwaysOnTop:
+{
+	Gui, Main:Default
+	GuiControlGet, Settings_AlwaysOnTop
+	If (Settings_AlwaysOnTop) {
+		Gui, +AlwaysOnTop
+	} else {
+		Gui, -AlwaysOnTop
+	}
 	return
 }
 
