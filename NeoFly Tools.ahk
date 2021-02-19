@@ -183,7 +183,8 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
-	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions (slower)
+	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions
+	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show ALL NF Miss. (SLOW)
 	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick
 
 	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
@@ -823,6 +824,7 @@ Goods_RefreshMissions:
 	GuicontrolGet, Goods_AllowOverweight
 	GuiControlGet, Goods_MaxOverweight
 	GuiControlGet, Goods_ArrivalTower
+	GuiControlGet, Goods_ShowAllNFMissions
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	validMarketQuery = 
@@ -884,6 +886,14 @@ Goods_RefreshMissions:
 	GuiControl, , Goods_MissionsText, % "Looking for missions..."
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	qExpirationField := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "m.expiration")
+	If (Goods_ShowAllNFMissions) {
+		qGoodsJoinReq := "AND [Time Left (hrs)] > 0"
+		qGoodsWhereReq := ""
+	} else {
+		qGoodsJoinReq := ""
+		qGoodsWhereReq := "AND [Time Left (hrs)] > 0"
+	}
+	
 	NFMissionsQuery =
 	(
 		SELECT
@@ -897,7 +907,7 @@ Goods_RefreshMissions:
 			m.missionTypeS AS [Mission Type], 
 			m.xp AS XP, 
 			0 AS [Trade Profit],
-			0 AS [Total Income],
+			m.reward AS [Total Income],
 			0 AS [Income/nm],
 			ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)],
 			'' AS [Can Buy At Arrival],
@@ -912,7 +922,9 @@ Goods_RefreshMissions:
 			m.missionHeading AS Hdg
 		FROM missions AS m
 		LEFT JOIN goodsMarket AS gm
-		ON gm.location=m.arrival
+		ON 
+			gm.location=m.arrival
+			%qGoodsJoinReq%
 		INNER JOIN airport AS a
 		ON a.ident=m.arrival
 		WHERE
@@ -924,11 +936,10 @@ Goods_RefreshMissions:
 			AND a.num_approach >= %Goods_ArrivalApproach%
 			AND a.longest_runway_length >= %Goods_ArrivalRwyLen%
 			AND a.has_tower_object >= %Goods_ArrivalTower%
-			AND gm.location != '%Goods_DepartureICAO%'
 			AND m.weight <= %qPayload%
 			AND m.pax <= %qPax%
-			AND [Time Left (hrs)] > 0
 			AND [Mission Expires (hrs)] > 0
+			%qGoodsWhereReq%
 		GROUP BY m.id
 	)
 	If !(NFMissionsResult := SQLiteGetTable(DB, NFMissionsQuery)) {
@@ -953,6 +964,11 @@ Goods_RefreshMissions:
 		GuiControl, , Goods_MissionsText, % "Analyzing " NFMissionsResult.RowCount . " missions..."
 		qDepRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dep.refreshDate")
 		qDestRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dest.refreshDate")
+		If (Goods_ShowAllNFMissions) {
+			qGoodsSelectReq := "ROUND((JULIANDAY(" . qDestRefreshDateField . ")-JULIANDAY('now', 'localtime'))*24+" . marketRefreshHours . ", 2)"
+		} else {
+			qGoodsSelectReq := 99
+		}
 		Loop % NFMissionsResult.RowCount {
 			NFMissionsResult.Next(NFMissionsRow)
 			qDeparture := NFMissionsRow[2]
@@ -965,7 +981,8 @@ Goods_RefreshMissions:
 					dep.name AS Good,
 					replace(dep.unitWeight, ',', '.') AS [Weight/u],
 					dest.unitPrice - dep.unitPrice AS [Profit/u],
-					MIN(dest.quantity, dep.quantity) AS [Max Qty]
+					MIN(dest.quantity, dep.quantity) AS [Max Qty],
+					%qGoodsSelectReq% AS [Time Left (hrs)]
 				FROM
 					goodsMarket AS dep
 				INNER JOIN
@@ -979,32 +996,35 @@ Goods_RefreshMissions:
 					AND dest.location='%qArrival%'
 					AND dep.tradeType=0
 					AND dest.tradeType=1
+					AND [Time Left (hrs)] > 0
 				ORDER BY [Profit/u]/[Weight/u] DESC
 			)
 			If !(NFMissionsGoodsResult := SQLiteGetTable(DB, NFMissionsGoodsQuery)) {
 				return
 			}
-			totalProfit := 0
-			availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-qMissionCargo
-			Loop % NFMissionsGoodsResult.RowCount {
-				NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
-				maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
-				totalProfit := totalProfit + (maxQty * NFMissionsGoodsRow[3])
-				availablePayload -= maxQty*NFMissionsGoodsRow[2]
-			}
-			NFMissionsRow[10] := totalProfit
-			NFMissionsRow[11] := totalProfit + NFMissionsRow[7]
-			NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0)
-			NFMissionsNextGoodsQuery = 
-			(
-				SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
-			)
-			If !(NFMissionsNextGoodsResult := SQLiteGetTable(DB, NFMissionsNextGoodsQuery)) {
-				return
-			}
-			Loop % NFMissionsNextGoodsResult.RowCount {
-				NFMissionsNextGoodsResult.Next(NFMissionsNextGoodsRow)
-				NFMissionsRow[14] := NFMissionsRow[14] . NFMissionsNextGoodsRow[1] . ", "
+			If (NFMissionsGoodsResult.RowCount) {
+				totalProfit := 0
+				availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-qMissionCargo
+				Loop % NFMissionsGoodsResult.RowCount {
+					NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
+					maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
+					totalProfit := totalProfit + (maxQty * NFMissionsGoodsRow[3])
+					availablePayload -= maxQty*NFMissionsGoodsRow[2]
+				}
+				NFMissionsRow[10] := totalProfit
+				NFMissionsRow[11] := totalProfit + NFMissionsRow[7]
+				NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0)
+				NFMissionsNextGoodsQuery = 
+				(
+					SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+				)
+				If !(NFMissionsNextGoodsResult := SQLiteGetTable(DB, NFMissionsNextGoodsQuery)) {
+					return
+				}
+				Loop % NFMissionsNextGoodsResult.RowCount {
+					NFMissionsNextGoodsResult.Next(NFMissionsNextGoodsRow)
+					NFMissionsRow[14] := NFMissionsRow[14] . NFMissionsNextGoodsRow[1] . ", "
+				}
 			}
 		}
 		NFMissionsResult.Reset()
@@ -1202,7 +1222,7 @@ Goods_MissionsLVClick:
 		LV_GetText(lvMissionType, A_EventInfo, 8)
 		LV_GetText(lvTimeLeft, A_EventInfo, 13)
 		LV_GetText(lvDistance, A_EventInfo, 4)
-		If (lvTimeLeft < lvDistance/Plane.cruiseSpeed+1) {
+		If (lvTimeLeft != "" && lvTimeLeft < lvDistance/Plane.cruiseSpeed+1) {
 			GuiControl, , Goods_WarningText, Warning: There are only %lvTimeleft% hours left to deliver goods to this market before it refreshes.
 		}
 		GuiControl, , Goods_MissionWeight, % lvMissionWeight
