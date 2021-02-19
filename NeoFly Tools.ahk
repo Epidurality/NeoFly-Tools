@@ -5,7 +5,7 @@
 ; Tested on:        Windows 10 64-bit
 ; Author:           Epidurality
 
-versionNumber := "0.6.0b"
+versionNumber := "0.7.0"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
 
 ; AHK Settings
@@ -78,7 +78,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 		Menu, Tray, Add, Reload, ReloadTool
 		Menu, Tray, Add, Close, MainGuiClose
 	}
-	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar|Company Manager
+	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar|Company Manager|Flight Tools
 	Gui, Add, StatusBar
 }
 
@@ -378,7 +378,37 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Button, xm+10 y70 gCompany_CleanLoans, Clean Up Loans
 	Gui, Add, Button, xm+10 y+20 gCompany_Finances, View Finances
 	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
-	Gui, Add, ListView, xm+10 y+10 w815 h200 vCompany_FinancesLV
+	Gui, Add, ListView, xm+10 y+10 w915 h200 Grid vCompany_FinancesLV
+}
+
+; Gui Flight Tools tab
+{
+	Gui, Tab, Flight Tools
+	Gui, Add, GroupBox, xm+10 y70 w915 h100, Descent Calculator
+	
+	Gui, Add, Text, xp+20 yp+20 Section, Airport ICAO:
+	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO, KJFK
+	Gui, Add, Text, x+20, Altitude (ft):
+	Gui, Add, Edit, x+5 w50 vFlight_CurrentAltitude, 10500	
+	Gui, Add, Text, x+20, Ground Speed (kts):
+	Gui, Add, Edit, x+5 w50 vFlight_Speed, 120
+	Gui, Add, Text, x+20, Glide Slope (deg):
+	Gui, Add, Edit, x+5 w50 vFlight_GlideSlope, 3
+	
+	Gui, Add, Button, xs y+10 gFlight_CalculateDescent, Calculate Descent
+	Gui, Add, Text, x+40, Start at (nm):
+	Gui, Add, Text, x+5 w50 vFlight_DescentDistance, ---
+	Gui, Add, Text, x+20, Descend at (fpm):
+	Gui, Add, Text, x+5 w50 vFlight_DescentRate, ---
+	Gui, Add, Text, x+20, Airport Altitude (ft):
+	Gui, Add, Text, x+5 w50 vFlight_AirportAlt, ---
+	
+	Gui, Add, GroupBox, xm+10 y+50 w915 h60, Stopwatch
+	Gui, Font, s15
+	Gui, Add, Text, xp+20 yp+20 w200 Center vFlight_StopwatchDisplay, 0:00:00
+	Gui, Font
+	Gui, Add, Button, x+10 w60 vFlight_StopwatchStart gFlight_StopwatchStart, Start
+	Gui, Add, Button, x+20 w60 vFlight_StopwatchStop gFlight_StopwatchStop Disabled, Stop
 }
 
 ; ==== Summary GUI ====
@@ -426,7 +456,10 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 
 return ; End of auto-run at startup.
 
+; ==== SUBROUTINES =====
 ; GUI functions
+
+; == Main Gui/Context Subroutines
 MainGuiClose:
 {
 	DB.CloseDB()
@@ -478,7 +511,6 @@ MainGuiContextMenu:
 	}
 	return
 }
-; ==== SUBROUTINES =====
 
 ; == Settings Tab Subroutines ==
 Settings_Connect:
@@ -2579,6 +2611,7 @@ Company_CleanLoans:
 		return
 	}
 	SB_SetText("Loans cleaned")
+	return
 }
 
 Company_Finances:
@@ -2678,6 +2711,62 @@ Company_Finances:
 	LV_ModifyCol(4, "AutoHdr")
 	GuiControl, +ReDraw, Company_FinancesLV
 	SB_SetText("Financials displayed")
+	return
+}
+
+; == Flight Tools Tab Subroutines == 
+Flight_CalculateDescent:
+{
+	GuiControlGet, Flight_AirportICAO
+	GuiControlGet, Flight_Speed
+	GuiControlGet, Flight_GlideSlope
+	GuiControlGet, Flight_CurrentAltitude
+	AirportAltitudeQuery = 
+	(
+		SELECT altitude FROM airport WHERE ident = '%Flight_AirportICAO%' LIMIT 1
+	)
+	If !(AirportAltitudeResult := SQLiteGetTable(DB, AirportAltitudeQuery)) {
+		return
+	}
+	If !(AirportAltitudeResult.RowCount) {
+		MsgBox, No airport found for that ICAO.
+		return
+	}
+	AirportAltitudeResult.GetRow(1, AirportAltitudeRow)
+	GuiControl, Text, Flight_AirportAlt, % AirportAltitudeRow[1]
+	GuiControl, Text, Flight_DescentDistance, % ROUND((Flight_CurrentAltitude-AirportAltitudeRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
+	GuiControl, Text, Flight_DescentRate, % CEIL(100.0*Flight_Speed/60.0*Flight_GlideSlope/50)*50
+	return
+}
+
+Flight_StopwatchStart:
+{
+	Gui, Main:Default
+	GuiControl, Disable, Flight_StopwatchStart
+	GuiControl, Enable, Flight_StopwatchStop
+	GuiControl, Text, Flight_StopwatchDisplay, 0:00:00
+	TimerStarted := A_TickCount
+	SetTimer, Flight_StopwatchTick, 1000
+	return
+}
+
+Flight_StopwatchStop:
+{
+	Gui, Main:Default
+	GuiControl, Enable, Flight_StopwatchStart
+	GuiControl, Disable, Flight_StopwatchStop
+	SetTimer, Flight_StopwatchTick, Off
+	return
+}
+
+Flight_StopwatchTick:
+{
+	Gui, Main:Default
+	timeElapsed := A_YYYY
+	secElapsed := ROUND((A_TickCount - TimerStarted)/1000)
+	EnvAdd, timeElapsed, %secElapsed%, Seconds
+	FormatTime, formattedTime, %timeElapsed%, H:mm:ss
+	GuiControl, Text, Flight_StopwatchDisplay, % formattedTime
 	return
 }
 
@@ -2906,14 +2995,14 @@ distanceFromCoord(lonA, latA, lonB, latB) {
 }
 
 ; == Formatting functions ==
-prettyNumbers(f, isCurrency = false) {
+prettyNumbers(inputNumber, isCurrency = false) {
 	LOCALE_USER_DEFAULT = 0x400
 	ffl = 32
 	VarSetCapacity(ff, ffl)
 	DllCall("GetNumberFormat"
 			, "UInt", LOCALE_USER_DEFAULT ; LCID Locale
 			, "UInt", 0 ; DWORD dwFlags
-			, "Str", f ; LPCTSTR lpValue
+			, "Str", inputNumber ; LPCTSTR lpValue
 			, "UInt", 0 ; CONST NUMBERFMT* lpFormat
 			, "Str", ff ; LPTSTR lpNumberStr
 			, "Int", ffl) ; int cchNumber
