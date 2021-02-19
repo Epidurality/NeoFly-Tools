@@ -150,7 +150,8 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
-	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
+	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_ManageOptions, Auto-Manage Options
+	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
 	Gui, Add, Button, xm+100 y105 h20 w150 gSummary_Show, Summary / AutoBuy
@@ -766,9 +767,6 @@ Goods_HangarLVClick:
 			return
 		}
 		Gui, Main:Default
-		GuiControlGet, Goods_IgnoreOnboardCargo
-		GuiControlGet, Goods_AutoRwyLen
-		GuiControlGet, Goods_AutoMaxRange
 		; Load the Plane info into the global vars for other things to use
 		Gui, ListView, Goods_HangarLV
 		LV_GetText(lvID, A_EventInfo, 1)
@@ -779,9 +777,55 @@ Goods_HangarLVClick:
 		LV_GetText(lvLocation, A_EventInfo, 7)
 		LV_GetText(lvFuel, A_EventInfo, 10)	
 		LV_GetText(lvMaxFuel, A_EventInfo, 11)
+		LV_GetText(lvQualification, A_EventInfo, 12)
 		LV_GetText(lvCruiseSpeed, A_EventInfo, 13)
 		LV_GetText(lvOnboardCargo, A_EventInfo, 14)
 		LV_GetText(lvRange, A_EventInfo, 15)
+		GuiControlGet, Goods_ManageOptions
+		If (Goods_ManageOptions) { ; If we're auto-managing the options...
+			qPilotID := Pilot.id
+			PilotLocationQuery =
+			(
+				SELECT pilotCurrentICAO FROM career WHERE id = %qPilotID% LIMIT 1
+			)
+			If !(PilotLocationResult := SQLiteGetTable(DB, PilotLocationQuery)) {
+				return
+			}
+			PilotLocationResult.GetRow(1, PilotLocationRow)
+			If (lvLocation = PilotLocationRow[1]) { ; Assume User is flying
+				GuiControl, , Goods_AutoRwyLen, 1
+				GuiControl, , Goods_AutoMaxRange, 1
+				GuiControl, , Goods_MaxOverweight, 0
+				GuiControl, , Goods_IncludeIllicit, 0
+				GuiControl, , Goods_IncludeFragile, 1
+				GuiControl, , Goods_IncludePerishable, 1
+				GuiControl, , Goods_IncludeNormal, 1
+				If (lvQualification != "A") {
+					GuiControl, , Goods_ArrivalHard, 1
+				}
+				If (lvQualifiction != "A" && lvQualifiction != "B") {
+					GuiControl, , Goods_ArrivalVASI, 1
+				}
+			} else { ; Assume AI is flying
+				GuiControl, , Goods_AutoRwyLen, 0
+				GuiControl, , Goods_ArrivalRwyLen, 0
+				GuiControl, , Goods_MaxOverweight, 99999
+				GuiControl, , Goods_AutoMaxRange, 1
+				GuiControl, , Goods_IncludeIllicit, 1
+				GuiControl, , Goods_IncludeFragile, 1
+				GuiControl, , Goods_IncludePerishable, 1
+				GuiControl, , Goods_IncludeNormal, 1
+				GuiControl, , Goods_ArrivalILS, 0
+				GuiControl, , Goods_ArrivalApproach, 0
+				GuiControl, , Goods_ArrivalLights, 0
+				GuiControl, , Goods_ArrivalVASI, 0
+				GuiControl, , Goods_ArrivalHard, 0
+				GuiControl, , Goods_ArrivalTower, 0
+			}
+		}
+		GuiControlGet, Goods_IgnoreOnboardCargo
+		GuiControlGet, Goods_AutoRwyLen
+		GuiControlGet, Goods_AutoMaxRange
 		If (Goods_AutoRwyLen) {
 			GuiControl, Text, Goods_ArrivalRwyLen, % CEIL((1300*Ln(lvPayload)-7700)/500)*500+500
 		}
@@ -851,29 +895,29 @@ Goods_RefreshMissions:
 	GuiControlGet, Goods_MaxRange
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
-	/* REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
-	validMarketQuery = 
-	(
-		SELECT 
-			ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)]
-		FROM goodsMarket AS gm
-		WHERE 
-			gm.location = '%Goods_DepartureICAO%'
-			AND [Time Left (hrs)] > 0
-		LIMIT 1
-	)
-	If !(validMarketResult := SQLiteGetTable(DB, validMarketQuery)) {
-		return
+	If (false) { ; REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
+		validMarketQuery = 
+		(
+			SELECT 
+				ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)]
+			FROM goodsMarket AS gm
+			WHERE 
+				gm.location = '%Goods_DepartureICAO%'
+				AND [Time Left (hrs)] > 0
+			LIMIT 1
+		)
+		If !(validMarketResult := SQLiteGetTable(DB, validMarketQuery)) {
+			return
+		}
+		If !(validMarketResult.RowCount) {
+			GuiControl, , Goods_MissionsText, % "Could not find valid market at Departure ICAO: '" . Goods_DepartureICAO . "'"
+			LV_Clear("Goods_MissionsLV")
+			LV_Clear("Goods_TradeMissionsLV")
+			LV_Clear("Goods_TradesLV")
+			SB_SetText("Unable to refresh missions")
+			return
+		}
 	}
-	If !(validMarketResult.RowCount) {
-		GuiControl, , Goods_MissionsText, % "Could not find valid market at Departure ICAO: '" . Goods_DepartureICAO . "'"
-		LV_Clear("Goods_MissionsLV")
-		LV_Clear("Goods_TradeMissionsLV")
-		LV_Clear("Goods_TradesLV")
-		SB_SetText("Unable to refresh missions")
-		return
-	}
-	*/
 	goodsChecked := 0
 	If (Goods_IncludeIllicit) {
 		qIllicit := "!= -1"
@@ -1481,6 +1525,16 @@ Goods_CheckHangar:
 	CheckHangarResult.GetRow(1, CheckHangarRow)
 	If (Plane.id != CheckHangarRow[1] || Plane.location != CheckHangarRow[2] || Plane.fuel != CheckHangarRow[3] || Plane.onboardCargo != CheckHangarRow[4]) {
 		GuiControl, Text, Goods_WarningText, Change detected with chosen plane! Refresh the Hangar.
+	}
+	return
+}
+
+Goods_ManageOptions:
+{
+	Gui, Main:Default
+	GuiControlGet, Goods_ManageOptions
+	If (Goods_ManageOptions) {
+		MsgBox, 64, Auto-Manage Options, When enabled, this feature automatically assumes if the User will be flying, or AI (based on Pilot location).`n`nIt will automatically adjust settings and filters for common optimizations.`n`nUncheck this feature to stop NeoFly Tools from adjusting filters on its own.
 	}
 	return
 }
