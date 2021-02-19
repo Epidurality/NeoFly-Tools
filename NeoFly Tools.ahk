@@ -323,7 +323,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 
 	Gui, Add, Button, xm+10 y+10 gGenerator_Distance, Calculate Distance
 	Gui, Add, Text, x+20, Distance (nm):
-	Gui, Add, Edit, x+10 w100 vGenerator_dist, 100
+	Gui, Add, Edit, x+5 w100 vGenerator_dist, 100
+	Gui, Add, Text, x+20, Heading (degrees):
+	Gui, Add, Edit, x+5 w60 vGenerator_hdg, 0
 
 	Gui, Add, Text, xm+10 y+20, Missions to Generate:
 	Gui, Add, Edit, x+10 w50 vGenerator_Quantity, 1
@@ -1133,7 +1135,7 @@ Goods_RefreshMissions:
 					availablePayload := availablePayload - maxQty*TradesGoodsRow[2]
 				}
 				TradesRow[3] := totalProfit
-				TradesRow[4] := ROUND(0.000539957*InvVincenty(pilotLatY, pilotLonX, TradesRow[7], TradesRow[6]), 0)
+				TradesRow[4] := ROUND(distanceFromCoord(pilotLonX, pilotLatY, TradesRow[6], TradesRow[7]))
 				TradesRow[5] := ROUND(TradesRow[3]/TradesRow[4],0)
 				TradesNextGoodsQuery = 
 				(
@@ -2098,12 +2100,14 @@ Generator_FindLatLon:
 Generator_Distance:
 {
 	Gui, Main:Default
-	GuiControlGet, Generator_lonDep
-	GuiControlGet, Generator_latDep
-	GuiControlGet, Generator_lonArriv
-	GuiControlGet, Generator_latArriv
-	distanceNM := ROUND(0.000539957*InvVincenty(Generator_latDep, Generator_lonDep, Generator_latArriv, Generator_lonArriv),0)
-	GuiControl, , Generator_dist, % distanceNM
+	GuiControlGet, Generator_lonDep ; La
+	GuiControlGet, Generator_latDep ; Qa
+	GuiControlGet, Generator_lonArriv ; Lb
+	GuiControlGet, Generator_latArriv ; Qb
+	distanceNM := ROUND(distanceFromCoord(Generator_lonDep, Generator_latDep, Generator_lonArriv, Generator_latArriv))
+	heading := ROUND(headingFromCoord(Generator_lonDep, Generator_latDep, Generator_lonArriv, Generator_latArriv))
+	GuiControl, Text, Generator_dist, % distanceNM
+	GuiControl, Text, Generator_hdg, % heading
 	return
 }
 
@@ -2239,7 +2243,8 @@ Generator_Preview:
 				'%Generator_rankS%' AS rankS,
 				'%Generator_rankI%' AS rankI,
 				'' AS liveID,
-				%qXP% AS xp
+				%qXP% AS xp,
+				%Generator_hdg% AS missionHeading
 		)
 		GeneratorPreviewQuery := GeneratorPreviewQuery . NextPreviewQuery
 		If (A_Index<Generator_Quantity) {
@@ -2264,10 +2269,10 @@ Generator_PreviewLVClick:
 		SB_SetText("Committing mission to database...")
 		Gui, ListView, Goods_PreviewLV
 		varList := ""
+		; Lazy way of getting all the columns into variables for use in the query
 		Loop % LV_GetCount("Column") {
 			LV_GetText(qVar%A_Index%, A_EventInfo, A_Index)
 		}
-
 		GeneratorCommitQuery = 
 		(
 			INSERT INTO missions 
@@ -2306,7 +2311,8 @@ Generator_PreviewLVClick:
 				'%qVar32%' AS rankI,
 				'%qVar33%' AS liveID,
 				%qVar34% AS xp,
-				(SELECT id FROM missions ORDER BY id DESC LIMIT 1)+1 AS id
+				(SELECT id FROM missions ORDER BY id DESC LIMIT 1)+1 AS id,
+				%qVar35% AS missionHeading
 		)
 		
 		DB.CloseDB()
@@ -2577,6 +2583,18 @@ SQLiteGetTable(database, query) {
 	return resultTable
 }
 
+SQLitePreviewTable(Table) {
+	global Preview_LV
+	Gui, Preview:Destroy
+	Gui, Preview:New
+	Gui, Preview:Default
+	Gui, Preview:Add, ListView, w800 h600 Grid vPreview_LV
+	LV_ShowTable(Table, "Preview_LV")
+	Gui, Preview:Show
+	Table.Reset()
+	return
+}
+
 SQLiteGenerateDateConversion(format, field) {
 	normalized := ""
 	; Turn it into yyyy-mm-dd h:mm:ss format
@@ -2736,19 +2754,6 @@ LV_Clear(LV) {
 	return
 }
 
-SQLitePreviewTable(Table) {
-	global Preview_LV
-	Gui, Preview:Destroy
-	Gui, Preview:New
-	Gui, Preview:Default
-	Gui, Preview:Add, ListView, w800 h600 Grid vPreview_LV
-	LV_ShowTable(Table, "Preview_LV")
-	Gui, Preview:Show
-	Table.Reset()
-	return
-}
-
-
 ; == Webhook functions ==
 Webhook_PostSend(url, postdata) {
 	Try {
@@ -2765,7 +2770,36 @@ GetDateFormat(dateSample) {
 	return
 }
 
+; == Math functions ==
+/*
+atan2(y,x) {
+    Return atan(y/x)+2*(1+(x<0))*atan((x<=0)*((y>=0)-(y<0)))
+}
 
+
+degToRad(degrees) {
+	return degrees*0.01745329252
+}
+
+radToDeg(radians) {
+	return radians*57.29578
+}
+*/
+
+headingFromCoord(lonA, latA, lonB, latB) {
+	lonA := dtr(lonA)
+	latA := dtr(latA)
+	lonB := dtr(lonB)
+	latB := dtr(latB)
+	dL := lonB - lonA
+	X := cos(latB) * sin(dL)
+	Y := cos(latA)*sin(latB) - sin(latA)*cos(latB)*cos(dL)
+	return MOD(rtd(atan2(X,Y))+360,360)
+}
+
+distanceFromCoord(lonA, latA, lonB, latB) {
+	return 0.000539957*InvVincenty(latA, lonA, latB, lonB)
+}
 /*
 NOTES RE: DATE CODES:
 This is just here to remind me what different date codes have been shown so far.
