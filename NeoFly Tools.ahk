@@ -376,6 +376,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 {
 	Gui, Tab, Company Manager
 	Gui, Add, Button, xm+10 y70 gCompany_CleanLoans, Clean Up Loans
+	Gui, Add, Button, xm+10 y+20 gCompany_Finances, View Finances
+	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
+	Gui, Add, ListView, xm+10 y+10 w815 h200 vCompany_FinancesLV
 }
 
 ; ==== Summary GUI ====
@@ -2574,6 +2577,101 @@ Company_CleanLoans:
 		return
 	}
 }
+
+Company_Finances:
+{
+	Gui, Main:Default
+	GuiControlGet, Company_FinancesPeriod
+	GuiControlGet, Settings_MissionDateFormat
+	Switch Company_FinancesPeriod
+	{
+		Case "24 Hours":
+			qDateMin := "DATETIME('now','localtime','-1 days')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+		Case "7 Days":
+			qDateMin := "DATETIME('now','localtime','-7 days')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+		Case "30 Days":
+			qDateMin := "DATETIME('now','localtime','-30 days')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+		Case "All Time", Default:
+			qDateMin := "DATETIME('now','localtime','-100 years')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+	}
+	qBalancesDate := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "date")
+	BalancesSelectQuery = 
+	(
+		SELECT date AS [Transaction Date], description AS Description, incomes AS Income, expenses AS Expenses, '' AS ''
+		FROM balances
+		WHERE owner = (SELECT pilotID FROM currentPilot LIMIT 1)
+		AND [Transaction Date] >= %qDateMin%
+		AND [Transaction Date] <= %qDateMax%
+		ORDER BY [Transaction Date]
+	)
+	clipboard := BalancesSelectQuery
+	If !(BalancesSelectResult := SQLiteGetTable(DB, BalancesSelectQuery)) {
+		return
+	}
+	LV_ShowTable(BalancesSelectResult, "Company_FinancesLV", false)
+	BalancesSelectResult.Reset()
+	; Find the totals
+	expensesTotal := 0
+	incomeTotal := 0
+	fuelTotal := 0
+	airportFeesTotal := 0
+	playerMissionTotal := 0
+	aiMissionTotal := 0
+	insuranceTotal := 0
+	movingTotal := 0
+	loanTakeTotal := 0
+	loanPayTotal := 0
+	goodsBuyTotal := 0
+	goodsSellTotal := 0
+	dispWageTotal := 0
+	fboRentTotal := 0
+	planePurchaseTotal := 0
+	Loop % BalancesSelectResult.RowCount {
+		BalancesSelectResult.Next(BalancesSelectRow)
+		netLineAmount := BalancesSelectRow[3] - BalancesSelectRow[4]
+		incomeTotal := incomeTotal + BalancesSelectRow[3]
+		expensesTotal := expensesTotal - BalancesSelectRow[4]
+		If (InStr(BalancesSelectRow[2], "Fuel added")) {
+			fuelTotal += %netLineAmount%
+		} else If (InStr(BalancesSelectRow[2], "Airport fees")) {
+			airportFeesTotal += %netLineAmount%
+		} else If (InStr(BalancesSelectRow[2], "Payment for mission:")) {
+			playerMissionTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Payment for")) {
+			aiMissionTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Insurance cost")) {
+			insuranceTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Moving")) {
+			movingTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "New Loan")) {
+			loanTakeTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Payment on")) {
+			loanPayTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Buy")) {
+			goodsBuyTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Sell")) {
+			goodsSellTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Wage")) {
+			dispWageTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Fbo rent")) {
+			fboRentTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Plane purchase")) {
+			planePurchaseTotal += %netLineAmount%
+		}
+	}
+	Gui, ListView, Company_FinancesLV
+	LV_Insert(1, "", "-------", "-------")
+	LV_Insert(1, "", Company_FinancesPeriod, "NET: " . incomeTotal+expensesTotal . "     TOTALS:", incomeTotal, -expensesTotal)
+	LV_ModifyCol(3, "AutoHdr")
+	LV_ModifyCol(4, "AutoHdr")
+	GuiControl, +ReDraw, Company_FinancesLV
+	return
+}
+
 
 ; ==== FUNCTIONS ====
 
