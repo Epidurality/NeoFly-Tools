@@ -110,6 +110,9 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+40 gSettings_Disconnect, Disconnect
 	Gui, Add, Text, x+50, NeoFly Tools Version: v%versionNumber%`nUpdates available at`n`t%updateLink%
 
+	Gui, Add, Button, xm+10 y+10 gSettings_Backup, Backup Database
+	Gui, Add, Text, R2 x+10 w600, Always backup your database before using this tool for the first time, or after updates.
+
 	Gui, Add, Text, xm+10 y+30, Selected Pilot:
 	Gui, Add, Text, x+10 vSettings_Pilot, Connect to a database to get pilot information.
 	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick
@@ -283,10 +286,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 ; GUI Mission Generator tab
 {
 	Gui, Tab, Mission Generator
-	Gui, Add, Button, xm+10 y70 gGenerator_Backup, Backup Database
-	Gui, Add, Text, R2 x+10 w600, Always backup your database before using the generator. Generator has database WRITE capabilities and CAN SCREW UP THE DATABASE. Read the readme that was included with this app, and use at your own risk.
-
-	Gui, Add, Text, xm+10 y+20, Departure ICAO:
+	Gui, Add, Text, xm+10 y70, Departure ICAO:
 	Gui, Add, Edit, x+10 w50 vGenerator_departure, KJFK
 	Gui, Add, Text, x+30, Arrival:
 	Gui, Add, Edit, x+10 w200 vGenerator_arrival, KLAX
@@ -394,8 +394,8 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+5 w220 vSummary_FuelInfo, Summary_FuelInfo
 	Gui, Add, Text, xm w60, Payload:
 	Gui, Add, Text, x+5 w220 vSummary_PayloadInfo, Summary_PayloadInfo
-	Gui, Add, Text, xm y+10 cRed w280, Summary_WarningText
-	Gui, Add, Button, x65 y+20 w150 gSummaryGuiClose, Close
+	Gui, Add, Text, xm y+10 cRed w280 h50 +wrap, Summary_WarningText
+	Gui, Add, Button, x65 y+10 w150 gSummaryGuiClose, Close
 	Gui, Add, Button, x65 y+20 w150 gSummary_Buy vSummary_Buy, Buy for Me!
 }
 
@@ -543,6 +543,34 @@ Settings_Disconnect:
 	LV_Clear("Goods_TradesLV")
 	LV_Clear("Settings_TimestampLV")
 	SB_SetText("Disconnected from the database")
+}
+
+Settings_Backup:
+{
+	Gui, Main:Default
+	SB_SetText("Backing up database...")
+	GuiControlGet, Settings_DBPath
+	FormatTime, timestampSuffix, , yyyyMMddHHmmss
+	BackupPath := Settings_DBPath . ".backup" . timestampSuffix
+	MsgBox, 36, Backup Confirmation, Clicking YES will attempt to create a backup of:`n`n%Settings_DBPath%`nas`n%BackupPath%`n`nCreate backup?
+	IfMsgBox Yes 
+	{
+		IfNotExist %Settings_DBPath%
+		{
+			MsgBox, 16, Error, Cannot find file specified. Please double-check your database path in the Settings tab.
+			return
+		}
+		FileCopy, %Settings_DBPath%, %BackupPath%, true
+		If (ErrorLevel) {
+			MsgBox, 16, Error, Could not complete backup. Error:`n%A_LastError%
+		} else {
+			MsgBox, 64, Success!, Backup performed, but it's a good idea to double-check if this was the first time backup up this database.`n`nRemember to periodically delete old backup versions
+		}
+	} else {
+		MsgBox, 64, Aborted, Backup was not performed.
+	}
+	SB_SetText("Database backup complete")
+	return
 }
 
 Settings_PilotLVClick:
@@ -850,6 +878,7 @@ Goods_RefreshMissions:
 	GuiControlGet, Goods_MaxRange
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
+	/* REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
 	validMarketQuery = 
 	(
 		SELECT 
@@ -871,6 +900,7 @@ Goods_RefreshMissions:
 		SB_SetText("Unable to refresh missions")
 		return
 	}
+	*/
 	goodsChecked := 0
 	If (Goods_IncludeIllicit) {
 		qIllicit := "!= -1"
@@ -1543,7 +1573,7 @@ Summary_Show:
 Summary_Buy:
 {
 	Gui, Summary:Default
-	Gui, -AlwaysOnTop
+	Gui, -AlwaysOnTop ; Otherwise the confirmation msgbox will be hidden
 	Gui, Main:Default
 	GuiControlGet, Settings_GoodsDateFormat
 	; Get the goods information required for database changes
@@ -1589,7 +1619,6 @@ Summary_Buy:
 	}
 	GoodsSelectResult.Reset()
 	; Confirm to the user
-	
 	MsgBox, 36, Confirm Goods Purchase, Are you sure you want to purchase these goods?`n`nTotal cost will be:`t`t $%totalCost% `n`nNOTE: Currently this script cannot directly edit your bank account, so instead it will add a loan (with 0`% interest) of this amount for you to pay later.
 	IfMsgBox Yes
 	{
@@ -2079,32 +2108,6 @@ AircraftMarket_Compare:
 }
 
 ; == Mission Generator Tab Subroutines ==
-Generator_Backup:
-{
-	Gui, Main:Default
-	SB_SetText("Backing up database...")
-	GuiControlGet, Settings_DBPath
-	MsgBox, 36, Backup Confirmation, Clicking YES will attempt to create a backup of:`n`n%Settings_DBPath%`nas`n%Settings_DBPath%.backup`n`nThis will overwrite any previous backups. Are you sure you want to continue?
-	IfMsgBox Yes 
-	{
-		IfNotExist %Settings_DBPath%
-		{
-			MsgBox, 16, Error, Cannot find file specified. Please double-check your database path in the Settings tab.
-			return
-		}
-		FileCopy, %Settings_DBPath%, %Settings_DBPath%.backup, true
-		If (ErrorLevel) {
-			MsgBox, 16, Error, Could not complete backup. Error:`n%A_LastError%
-		} else {
-			MsgBox, 64, Success!, Backup performed, but it's a good idea to double-check if this was the first time backup up this database.
-		}
-	} else {
-		MsgBox, 64, Aborted, Backup was not performed.
-	}
-	SB_SetText("Database backup performed")
-	return
-}
-
 Generator_FindLatLon:
 {
 	Gui, Main:Default
