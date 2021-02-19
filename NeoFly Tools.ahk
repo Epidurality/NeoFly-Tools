@@ -5,10 +5,8 @@
 ; Tested on:        Windows 10 64-bit
 ; Author:           Epidurality
 
-versionNumber := "0.5.0"
+versionNumber := "0.6.0b"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
-
-;iniPath := "debug.ini"
 
 ; AHK Settings
 {
@@ -56,7 +54,7 @@ IniRead, autoMarketStopHotkey, %iniPath%, Setup, autoMarketStopHotkey, NumpadSub
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
 }
 
-; ==== GUI ====
+; ==== Main GUI ====
 
 ; Icon setup
 {
@@ -80,7 +78,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 		Menu, Tray, Add, Reload, ReloadTool
 		Menu, Tray, Add, Close, MainGuiClose
 	}
-	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar
+	Gui, Add, Tab3, vGUI_Tabs, Settings|Goods Optimizer|Auto-Market|Market Finder|Aircraft Market|Mission Generator|Monitor Hangar|Company Manager
 	Gui, Add, StatusBar
 }
 
@@ -96,7 +94,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 ; Context menus
 {
 	Menu, MissionsContextMenu, Add, Use As Departure, MissionsContext_UseAsDeparture
-	Menu, MissionsContextmenu, Add, Market Finder, MissionsContext_MarketFinder
+	Menu, MissionsContextMenu, Add, Market Finder, MissionsContext_MarketFinder
 	
 	Menu, TradeMissionsContextMenu, Add, Use As Departure, TradeMissionsContext_UseAsDeparture
 	Menu, TradeMissionsContextMenu, Add, Market Finder, TradeMissionsContext_MarketFinder
@@ -111,6 +109,9 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+20 gSettings_Connect, Connect
 	Gui, Add, Button, x+40 gSettings_Disconnect, Disconnect
 	Gui, Add, Text, x+50, NeoFly Tools Version: v%versionNumber%`nUpdates available at`n`t%updateLink%
+
+	Gui, Add, Button, xm+10 y+10 gSettings_Backup, Backup Database
+	Gui, Add, Text, R2 x+10 w600, Always backup your database before using this tool for the first time, or after updates.
 
 	Gui, Add, Text, xm+10 y+30, Selected Pilot:
 	Gui, Add, Text, x+10 vSettings_Pilot, Connect to a database to get pilot information.
@@ -149,10 +150,11 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
-	Gui, Add, Checkbox, x+300 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
+	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_ManageOptions, Auto-Manage Options
+	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
 
-	Gui, Add, Button, xm+100 y105 h20 gGoods_Summary, Summary
+	Gui, Add, Button, xm+100 y105 h20 w150 gSummary_Show, Summary / AutoBuy
 	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
 	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
@@ -170,21 +172,26 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalHard gGoods_RefreshMissions, Hard Rwy
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalTower gGoods_RefreshMissions, Tower
 	Gui, Add, Text, x+20, Min Rwy Len.
-	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen gGoods_RefreshMissions, 1000
+	Gui, Add, Edit, x+10 w50 vGoods_ArrivalRwyLen, 0
+	Gui, Add, Checkbox, x+5 vGoods_AutoRwyLen Checked, Auto
 
-	Gui, Add, Button, xm+10 y+0 gGoods_RefreshMissions, Refresh Missions
+	Gui, Add, Button, xm+10 y+10 gGoods_RefreshMissions, Refresh Missions
 	Gui, Add, Text, x+20, Goods Filters:
 	Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit gGoods_RefreshMissions, Illicit
 	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked gGoods_RefreshMissions, Fragile
 	Gui, Add, Checkbox, x+20 vGoods_IncludePerishable Checked gGoods_RefreshMissions, Perishable
 	Gui, Add, Checkbox, x+20 vGoods_IncludeNormal Checked gGoods_RefreshMissions, Normal
-	Gui, Add, CheckBox, x+40 vGoods_AllowOverweight gGoods_ChangeOverweight, Allow Overweight of:
-	Gui, Add, Edit, x+0 vGoods_MaxOverweight gGoods_ChangeOverweight w80 h20 Disabled, 999999
-	Gui, Add, Text, x+0, lbs
+	Gui, Add, Text, x+20,  Overweight:
+	Gui, Add, Edit, x+2 vGoods_MaxOverweight w50 h20, 0
+	Gui, Add, Text, x+2, lbs
+	Gui, Add, Text, x+20, Max Range:
+	Gui, Add, Edit, x+2 vGoods_MaxRange w40 h20, 9999
+	Gui, Add, Checkbox, x+5 vGoods_AutoMaxRange Checked, Auto
 	
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
-	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions (slower)
+	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions
+	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show Missions w/o Trades
 	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick
 
 	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
@@ -280,10 +287,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 ; GUI Mission Generator tab
 {
 	Gui, Tab, Mission Generator
-	Gui, Add, Button, xm+10 y70 gGenerator_Backup, Backup Database
-	Gui, Add, Text, R2 x+10 w600, Always backup your database before using the generator. Generator has database WRITE capabilities and CAN SCREW UP THE DATABASE. Read the readme that was included with this app, and use at your own risk.
-
-	Gui, Add, Text, xm+10 y+20, Departure ICAO:
+	Gui, Add, Text, xm+10 y70, Departure ICAO:
 	Gui, Add, Edit, x+10 w50 vGenerator_departure, KJFK
 	Gui, Add, Text, x+30, Arrival:
 	Gui, Add, Edit, x+10 w200 vGenerator_arrival, KLAX
@@ -324,7 +328,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 
 	Gui, Add, Button, xm+10 y+10 gGenerator_Distance, Calculate Distance
 	Gui, Add, Text, x+20, Distance (nm):
-	Gui, Add, Edit, x+10 w100 vGenerator_dist, 100
+	Gui, Add, Edit, x+5 w100 vGenerator_dist, 100
+	Gui, Add, Text, x+20, Heading (degrees):
+	Gui, Add, Edit, x+5 w60 vGenerator_hdg, 0
 
 	Gui, Add, Text, xm+10 y+20, Missions to Generate:
 	Gui, Add, Edit, x+10 w50 vGenerator_Quantity, 1
@@ -366,8 +372,40 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled,
 }
 
-; Main initialization
+; Gui Company Manager tab
 {
+	Gui, Tab, Company Manager
+	Gui, Add, Button, xm+10 y70 gCompany_CleanLoans, Clean Up Loans
+	Gui, Add, Button, xm+10 y+20 gCompany_Finances, View Finances
+	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
+	Gui, Add, ListView, xm+10 y+10 w815 h200 vCompany_FinancesLV
+}
+
+; ==== Summary GUI ====
+{
+	Gui, Summary:New
+	Gui, Summary:Default
+	Gui, +AlwaysOnTop -MinimizeBox -MaximizeBox
+	Gui, Add, Text, xm, Mission:
+	Gui, Add, Text, xm+20 w280 vSummary_MissionInfo, Summary_MissionInfo
+	Gui, Add, Text, xm+ y+10, Aircraft:
+	Gui, Add, Text, xm+20 w280 vSummary_PlaneInfo, Summary_PlaneInfo
+	Gui, Font, bold
+	Gui, Add, Text, xm y+20, Goods to buy:
+	Gui, Font
+	Gui, Add, ListView, xm y+5 w280 h150 vSummary_ToBuyLV, Good|Qty
+	Gui, Add, Text, xm y+20 w60, Fuel:
+	Gui, Add, Text, x+5 w220 vSummary_FuelInfo, Summary_FuelInfo
+	Gui, Add, Text, xm w60, Payload:
+	Gui, Add, Text, x+5 w220 vSummary_PayloadInfo, Summary_PayloadInfo
+	Gui, Add, Text, xm y+10 cRed w280 h50 +wrap, Summary_WarningText
+	Gui, Add, Button, x65 y+10 w150 gSummaryGuiClose, Close
+	Gui, Add, Button, x65 y+20 w150 gSummary_Buy vSummary_Buy, Buy for Me!
+}
+
+; ==== Main initialization ====
+{
+	Gui, Main:Default
 	SB_SetText("Connect to a database using the Settings tab.")
 	If (autoConnect) {
 		GuiControl, Splash:, Splash_Progress, 25
@@ -384,8 +422,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Show, h700 w960, NeoFly Tools
 	Gui, Splash:Destroy
 	Gui, Main:Default
-	return
 }
+
+return ; End of auto-run at startup.
 
 ; GUI functions
 MainGuiClose:
@@ -508,6 +547,34 @@ Settings_Disconnect:
 	LV_Clear("Goods_TradesLV")
 	LV_Clear("Settings_TimestampLV")
 	SB_SetText("Disconnected from the database")
+}
+
+Settings_Backup:
+{
+	Gui, Main:Default
+	SB_SetText("Backing up database...")
+	GuiControlGet, Settings_DBPath
+	FormatTime, timestampSuffix, , yyyyMMddHHmmss
+	BackupPath := Settings_DBPath . ".backup" . timestampSuffix
+	MsgBox, 36, Backup Confirmation, Clicking YES will attempt to create a backup of:`n`n%Settings_DBPath%`nas`n%BackupPath%`n`nCreate backup?
+	IfMsgBox Yes 
+	{
+		IfNotExist %Settings_DBPath%
+		{
+			MsgBox, 16, Error, Cannot find file specified. Please double-check your database path in the Settings tab.
+			return
+		}
+		FileCopy, %Settings_DBPath%, %BackupPath%, true
+		If (ErrorLevel) {
+			MsgBox, 16, Error, Could not complete backup. Error:`n%A_LastError%
+		} else {
+			MsgBox, 64, Success!, Backup performed, but it's a good idea to double-check if this was the first time backup up this database.`n`nRemember to periodically delete old backup versions
+		}
+	} else {
+		MsgBox, 64, Aborted, Backup was not performed.
+	}
+	SB_SetText("Database backup complete")
+	return
 }
 
 Settings_PilotLVClick:
@@ -677,7 +744,8 @@ Goods_RefreshHangar:
 			aircraftdata.FuelCaplbs AS [Max Fuel],
 			hangar.Qualification,
 			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)],
-			IFNULL(onboardCargo.totalCargo,0) AS [Onboard Cargo (lbs)]
+			IFNULL(onboardCargo.totalCargo,0) AS [Onboard Cargo (lbs)],
+			hangar.Rangenm AS Range
 		FROM hangar 
 		INNER JOIN 
 			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
@@ -702,7 +770,6 @@ Goods_HangarLVClick:
 			return
 		}
 		Gui, Main:Default
-		GuiControlGet, Goods_IgnoreOnboardCargo
 		; Load the Plane info into the global vars for other things to use
 		Gui, ListView, Goods_HangarLV
 		LV_GetText(lvID, A_EventInfo, 1)
@@ -713,8 +780,61 @@ Goods_HangarLVClick:
 		LV_GetText(lvLocation, A_EventInfo, 7)
 		LV_GetText(lvFuel, A_EventInfo, 10)	
 		LV_GetText(lvMaxFuel, A_EventInfo, 11)
+		LV_GetText(lvQualification, A_EventInfo, 12)
 		LV_GetText(lvCruiseSpeed, A_EventInfo, 13)
 		LV_GetText(lvOnboardCargo, A_EventInfo, 14)
+		LV_GetText(lvRange, A_EventInfo, 15)
+		GuiControlGet, Goods_ManageOptions
+		If (Goods_ManageOptions) { ; If we're auto-managing the options...
+			qPilotID := Pilot.id
+			PilotLocationQuery =
+			(
+				SELECT pilotCurrentICAO FROM career WHERE id = %qPilotID% LIMIT 1
+			)
+			If !(PilotLocationResult := SQLiteGetTable(DB, PilotLocationQuery)) {
+				return
+			}
+			PilotLocationResult.GetRow(1, PilotLocationRow)
+			If (lvLocation = PilotLocationRow[1]) { ; Assume User is flying
+				GuiControl, , Goods_AutoRwyLen, 1
+				GuiControl, , Goods_AutoMaxRange, 1
+				GuiControl, , Goods_MaxOverweight, 0
+				GuiControl, , Goods_IncludeIllicit, 0
+				GuiControl, , Goods_IncludeFragile, 1
+				GuiControl, , Goods_IncludePerishable, 1
+				GuiControl, , Goods_IncludeNormal, 1
+				If (lvQualification != "A") {
+					GuiControl, , Goods_ArrivalHard, 1
+				}
+				If (lvQualifiction != "A" && lvQualifiction != "B") {
+					GuiControl, , Goods_ArrivalVASI, 1
+				}
+			} else { ; Assume AI is flying
+				GuiControl, , Goods_AutoRwyLen, 0
+				GuiControl, , Goods_ArrivalRwyLen, 0
+				GuiControl, , Goods_MaxOverweight, 99999
+				GuiControl, , Goods_AutoMaxRange, 1
+				GuiControl, , Goods_IncludeIllicit, 1
+				GuiControl, , Goods_IncludeFragile, 1
+				GuiControl, , Goods_IncludePerishable, 1
+				GuiControl, , Goods_IncludeNormal, 1
+				GuiControl, , Goods_ArrivalILS, 0
+				GuiControl, , Goods_ArrivalApproach, 0
+				GuiControl, , Goods_ArrivalLights, 0
+				GuiControl, , Goods_ArrivalVASI, 0
+				GuiControl, , Goods_ArrivalHard, 0
+				GuiControl, , Goods_ArrivalTower, 0
+			}
+		}
+		GuiControlGet, Goods_IgnoreOnboardCargo
+		GuiControlGet, Goods_AutoRwyLen
+		GuiControlGet, Goods_AutoMaxRange
+		If (Goods_AutoRwyLen) {
+			GuiControl, Text, Goods_ArrivalRwyLen, % CEIL((1300*Ln(lvPayload)-7700)/500)*500+500
+		}
+		If (Goods_AutoMaxRange) {
+			GuiControl, Text, Goods_MaxRange, % lvRange
+		}
 		Plane.id := lvId
 		Plane.name := lvName . " " . lvTailNum
 		Plane.payload := lvPayload
@@ -739,19 +859,6 @@ Goods_HangarLVClick:
 		SB_SetText("Selected the " . Plane.name . "(#" . Plane.id . ") from the Goods Market hangar")
 		GoSub Goods_RefreshMissions
 	}
-	return
-}
-
-Goods_ChangeOverweight:
-{
-	Gui, Main:Default
-	GuiControlGet, Goods_AllowOverweight
-	If (Goods_AllowOverweight) {
-		GuiControl, Enable, Goods_MaxOverweight
-	} else {
-		GuiControl, Disable, Goods_MaxOverweight
-	}
-	GoSub Goods_RefreshMissions
 	return
 }
 
@@ -785,31 +892,34 @@ Goods_RefreshMissions:
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	GuiControlGet, Goods_ShowTradeMissions
-	GuicontrolGet, Goods_AllowOverweight
 	GuiControlGet, Goods_MaxOverweight
 	GuiControlGet, Goods_ArrivalTower
+	GuiControlGet, Goods_ShowAllNFMissions
+	GuiControlGet, Goods_MaxRange
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
-	validMarketQuery = 
-	(
-		SELECT 
-			ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)]
-		FROM goodsMarket AS gm
-		WHERE 
-			gm.location = '%Goods_DepartureICAO%'
-			AND [Time Left (hrs)] > 0
-		LIMIT 1
-	)
-	If !(validMarketResult := SQLiteGetTable(DB, validMarketQuery)) {
-		return
-	}
-	If !(validMarketResult.RowCount) {
-		GuiControl, , Goods_MissionsText, % "Could not find valid market at Departure ICAO: '" . Goods_DepartureICAO . "'"
-		LV_Clear("Goods_MissionsLV")
-		LV_Clear("Goods_TradeMissionsLV")
-		LV_Clear("Goods_TradesLV")
-		SB_SetText("Unable to refresh missions")
-		return
+	If (true) { ; REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
+		validMarketQuery = 
+		(
+			SELECT 
+				ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)]
+			FROM goodsMarket AS gm
+			WHERE 
+				gm.location = '%Goods_DepartureICAO%'
+				AND [Time Left (hrs)] > 0
+			LIMIT 1
+		)
+		If !(validMarketResult := SQLiteGetTable(DB, validMarketQuery)) {
+			return
+		}
+		If !(validMarketResult.RowCount) {
+			GuiControl, , Goods_MissionsText, % "You MUST Search the market at departure ICAO: '" . Goods_DepartureICAO . "'"
+			LV_Clear("Goods_MissionsLV")
+			LV_Clear("Goods_TradeMissionsLV")
+			LV_Clear("Goods_TradesLV")
+			SB_SetText("Unable to refresh missions")
+			return
+		}
 	}
 	goodsChecked := 0
 	If (Goods_IncludeIllicit) {
@@ -840,7 +950,7 @@ Goods_RefreshMissions:
 		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
 		return
 	}
-	qPayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo
+	qPayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
 	If (qPayload<200) {
 		GuiControl, Text, Goods_WarningText, % "Available plane payload is only " . qPayload . "lbs, and may limit search results."
 	}
@@ -849,6 +959,14 @@ Goods_RefreshMissions:
 	GuiControl, , Goods_MissionsText, % "Looking for missions..."
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	qExpirationField := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "m.expiration")
+	If (Goods_ShowAllNFMissions) {
+		qGoodsJoinReq := "AND [Time Left (hrs)] > 0"
+		qGoodsWhereReq := ""
+	} else {
+		qGoodsJoinReq := ""
+		qGoodsWhereReq := "AND [Time Left (hrs)] > 0"
+	}
+	
 	NFMissionsQuery =
 	(
 		SELECT
@@ -862,7 +980,7 @@ Goods_RefreshMissions:
 			m.missionTypeS AS [Mission Type], 
 			m.xp AS XP, 
 			0 AS [Trade Profit],
-			0 AS [Total Income],
+			m.reward AS [Total Income],
 			0 AS [Income/nm],
 			ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)],
 			'' AS [Can Buy At Arrival],
@@ -873,14 +991,18 @@ Goods_RefreshMissions:
 			a.num_runway_end_vasi AS [VASI/PAPI],
 			a.num_runway_hard AS [Hard Rwys],			
 			a.longest_runway_length AS [Rwy Len],
-			a.has_tower_object AS [Tower]			
+			a.has_tower_object AS [Tower],
+			m.missionHeading AS Hdg
 		FROM missions AS m
 		LEFT JOIN goodsMarket AS gm
-		ON gm.location=m.arrival
+		ON 
+			gm.location=m.arrival
+			%qGoodsJoinReq%
 		INNER JOIN airport AS a
 		ON a.ident=m.arrival
 		WHERE
 			departure='%Goods_DepartureICAO%'
+			AND m.dist <= %Goods_MaxRange%
 			AND a.num_runway_hard >= %Goods_ArrivalHard%
 			AND a.num_runway_light >= %Goods_ArrivalLights%
 			AND a.num_runway_end_ils >= %Goods_ArrivalILS%
@@ -888,11 +1010,10 @@ Goods_RefreshMissions:
 			AND a.num_approach >= %Goods_ArrivalApproach%
 			AND a.longest_runway_length >= %Goods_ArrivalRwyLen%
 			AND a.has_tower_object >= %Goods_ArrivalTower%
-			AND gm.location != '%Goods_DepartureICAO%'
 			AND m.weight <= %qPayload%
 			AND m.pax <= %qPax%
-			AND [Time Left (hrs)] > 0
 			AND [Mission Expires (hrs)] > 0
+			%qGoodsWhereReq%
 		GROUP BY m.id
 	)
 	If !(NFMissionsResult := SQLiteGetTable(DB, NFMissionsQuery)) {
@@ -917,8 +1038,16 @@ Goods_RefreshMissions:
 		GuiControl, , Goods_MissionsText, % "Analyzing " NFMissionsResult.RowCount . " missions..."
 		qDepRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dep.refreshDate")
 		qDestRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dest.refreshDate")
+		If (Goods_ShowAllNFMissions) {
+			qGoodsSelectReq := "ROUND((JULIANDAY(" . qDestRefreshDateField . ")-JULIANDAY('now', 'localtime'))*24+" . marketRefreshHours . ", 2)"
+		} else {
+			qGoodsSelectReq := 99
+		}
 		Loop % NFMissionsResult.RowCount {
 			NFMissionsResult.Next(NFMissionsRow)
+			If (NFMissionsRow[13] = "") { ; This means there was no available cargo/market, so we can skip the analysis.
+				continue
+			}
 			qDeparture := NFMissionsRow[2]
 			qArrival := NFMissionsRow[3]
 			qMissionCargo := NFMissionsRow[6]
@@ -930,8 +1059,7 @@ Goods_RefreshMissions:
 					replace(dep.unitWeight, ',', '.') AS [Weight/u],
 					dest.unitPrice - dep.unitPrice AS [Profit/u],
 					MIN(dest.quantity, dep.quantity) AS [Max Qty],
-					%qDepRefreshDateField% AS depRefreshFormatted,
-					%qDestRefreshDateField% AS destRefreshFormatted
+					%qGoodsSelectReq% AS [Time Left (hrs)]
 				FROM
 					goodsMarket AS dep
 				INNER JOIN
@@ -945,34 +1073,35 @@ Goods_RefreshMissions:
 					AND dest.location='%qArrival%'
 					AND dep.tradeType=0
 					AND dest.tradeType=1
-					AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
-					AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
+					AND [Time Left (hrs)] > 0
 				ORDER BY [Profit/u]/[Weight/u] DESC
 			)
 			If !(NFMissionsGoodsResult := SQLiteGetTable(DB, NFMissionsGoodsQuery)) {
 				return
 			}
-			totalProfit := 0
-			availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-qMissionCargo
-			Loop % NFMissionsGoodsResult.RowCount {
-				NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
-				maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
-				totalProfit := totalProfit + (maxQty * NFMissionsGoodsRow[3])
-				availablePayload -= maxQty*NFMissionsGoodsRow[2]
-			}
-			NFMissionsRow[10] := totalProfit
-			NFMissionsRow[11] := totalProfit + NFMissionsRow[7]
-			NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0)
-			NFMissionsNextGoodsQuery = 
-			(
-				SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
-			)
-			If !(NFMissionsNextGoodsResult := SQLiteGetTable(DB, NFMissionsNextGoodsQuery)) {
-				return
-			}
-			Loop % NFMissionsNextGoodsResult.RowCount {
-				NFMissionsNextGoodsResult.Next(NFMissionsNextGoodsRow)
-				NFMissionsRow[14] := NFMissionsRow[14] . NFMissionsNextGoodsRow[1] . ", "
+			If (NFMissionsGoodsResult.RowCount) {
+				totalProfit := 0
+				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-qMissionCargo
+				Loop % NFMissionsGoodsResult.RowCount {
+					NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
+					maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
+					totalProfit := totalProfit + (maxQty * NFMissionsGoodsRow[3])
+					availablePayload -= maxQty*NFMissionsGoodsRow[2]
+				}
+				NFMissionsRow[10] := totalProfit
+				NFMissionsRow[11] := totalProfit + NFMissionsRow[7]
+				NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0)
+				NFMissionsNextGoodsQuery = 
+				(
+					SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+				)
+				If !(NFMissionsNextGoodsResult := SQLiteGetTable(DB, NFMissionsNextGoodsQuery)) {
+					return
+				}
+				Loop % NFMissionsNextGoodsResult.RowCount {
+					NFMissionsNextGoodsResult.Next(NFMissionsNextGoodsRow)
+					NFMissionsRow[14] := NFMissionsRow[14] . NFMissionsNextGoodsRow[1] . ", "
+				}
 			}
 		}
 		NFMissionsResult.Reset()
@@ -1074,9 +1203,7 @@ Goods_RefreshMissions:
 						dep.name AS Good,
 						replace(dep.unitWeight, ',', '.') AS [Weight/u],
 						dest.unitPrice - dep.unitPrice AS [Profit/u],
-						MIN(dest.quantity, dep.quantity) AS [Max Qty],
-						%qDepRefreshDateField% AS depRefreshFormatted,
-						%qDestRefreshDateField% AS destRefreshFormatted				
+						MIN(dest.quantity, dep.quantity) AS [Max Qty]		
 					FROM
 						goodsMarket AS dep
 					INNER JOIN goodsMarket AS dest 
@@ -1091,15 +1218,13 @@ Goods_RefreshMissions:
 						AND dest.location='%qArrival%'
 						AND dep.tradeType=0
 						AND dest.tradeType=1
-						AND depRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
-						AND destRefreshFormatted > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
 					ORDER BY [Profit/u]/[Weight/u] DESC
 				)
 				If !(TradesGoodsResult := SQLiteGetTable(DB, TradesGoodsQuery)) {
 					return
 				}
 				totalProfit := 0
-				availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo
+				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
 				Loop % TradesGoodsResult.RowCount {
 					TradesGoodsResult.Next(TradesGoodsRow)
 					maxQty := FLOOR(MIN(TradesGoodsRow[4], availablePayload/TradesGoodsRow[2]))
@@ -1107,7 +1232,7 @@ Goods_RefreshMissions:
 					availablePayload := availablePayload - maxQty*TradesGoodsRow[2]
 				}
 				TradesRow[3] := totalProfit
-				TradesRow[4] := ROUND(0.000539957*InvVincenty(pilotLatY, pilotLonX, TradesRow[7], TradesRow[6]), 0)
+				TradesRow[4] := ROUND(distanceFromCoord(pilotLonX, pilotLatY, TradesRow[6], TradesRow[7]))
 				TradesRow[5] := ROUND(TradesRow[3]/TradesRow[4],0)
 				TradesNextGoodsQuery = 
 				(
@@ -1174,7 +1299,7 @@ Goods_MissionsLVClick:
 		LV_GetText(lvMissionType, A_EventInfo, 8)
 		LV_GetText(lvTimeLeft, A_EventInfo, 13)
 		LV_GetText(lvDistance, A_EventInfo, 4)
-		If (lvTimeLeft < lvDistance/Plane.cruiseSpeed+1) {
+		If (lvTimeLeft != "" && lvTimeLeft < lvDistance/Plane.cruiseSpeed+1) {
 			GuiControl, , Goods_WarningText, Warning: There are only %lvTimeleft% hours left to deliver goods to this market before it refreshes.
 		}
 		GuiControl, , Goods_MissionWeight, % lvMissionWeight
@@ -1304,7 +1429,8 @@ Goods_RefreshMarket:
 			MIN(dest.quantity, dep.quantity) AS [Max Qty],
 			0 AS [Buy Cost],
 			MIN(dest.quantity, dep.quantity)*(dest.unitPrice-dep.unitPrice) AS [Max Profit],
-			replace(dep.unitWeight, ',', '.')*MIN(dest.quantity, dep.quantity) AS [Max Weight]
+			replace(dep.unitWeight, ',', '.')*MIN(dest.quantity, dep.quantity) AS [Max Weight],
+			dep.id AS ID
 		FROM
 			goodsMarket AS dep
 		INNER JOIN
@@ -1332,7 +1458,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
-	availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
+	availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
 	OptimalResult.ColumnNames[12] := "Profit"
@@ -1406,7 +1532,18 @@ Goods_CheckHangar:
 	return
 }
 
-Goods_Summary:
+Goods_ManageOptions:
+{
+	Gui, Main:Default
+	GuiControlGet, Goods_ManageOptions
+	If (Goods_ManageOptions) {
+		MsgBox, 64, Auto-Manage Options, When enabled, this feature automatically assumes if the User will be flying, or AI (based on Pilot location).`n`nIt will automatically adjust settings and filters for common optimizations.`n`nUncheck this feature to stop NeoFly Tools from adjusting filters on its own.
+	}
+	return
+}
+
+; == Summary Window Subroutines ==
+Summary_Show:
 {
 	GoSub Goods_CheckHangar
 	Gui, Main:Default
@@ -1415,28 +1552,41 @@ Goods_Summary:
 	GuiControlGet, Goods_PlaneInfo
 	GuiControlGet, Goods_FuelInfo
 	GuiControlGet, Goods_PayloadInfo
-	Gui, Summary:New
-	Gui, Summary:+AlwaysOnTop -MinimizeBox -MaximizeBox
-	Gui, Summary:Add, Text, xm, % Goods_MissionInfo
-	Gui, Summary:Add, Text, xm, % Goods_PlaneInfo
-	Gui, Summary:Font, bold
-	Gui, Summary:Add, Text, xm y+20, Goods to buy:
-	Gui, Summary:Font
-	; Get list of goods
+	GuiControlGet, Goods_DepartureICAO
+	; Get information at time of summary creation, so that changes in the Main GUI don't change values this portion will use.
+	SummaryData := {planeID: Plane.id, departureICAO: Goods_DepartureICAO, goodsCount: 0, goodsList: []}
+	; Change the GUI contents
+	Gui, Summary:Default
+	GuiControl, Enable, Summary_Buy
+	GuiControl, Text, Summary_PayloadInfo, % Goods_PayloadInfo
+	GuiControl, Text, Summary_MissionInfo, % Goods_MissionInfo
+	GuiControl, Text, Summary_PlaneInfo, % Goods_PlaneInfo
+	GuiControl, Text, Summary_FuelInfo, % Goods_FuelInfo
+	GuiControl, Text, Summary_WarningText, % Goods_WarningText
+	Gui, ListView, Summary_ToBuyLV
+	LV_Delete()
+	; Populate list of goods
 	Gui, Main:Default
 	Gui, ListView, Goods_TradesLV
 	Loop % LV_GetCount() {
+		Gui, Main:Default
+		Gui, ListView, Goods_TradesLV
 		LV_GetText(lvGood, A_Index, 1)
 		LV_GetText(lvQty, A_Index, 10)
-		Gui, ListView, Goods_TradesLV
-		Gui, Summary:Add, Text, xm w75, % lvGood
-		Gui, Summary:Add, Text, x+5, % lvQty
-	}	
-	Gui, Summary:Add, Text, xm y+30, % "Fuel:`t`t" . Goods_FuelInfo
-	Gui, Summary:Add, Text, xm, % "Payload:`t" . Goods_PayloadInfo
-	Gui, Summary:Add, Button, w150 x65 gSummaryGuiClose, Close
-	Gui, Summary:Add, Text, xm cRed w280, % Goods_WarningText
-	; If possible, find where NeoFly is and put the summary on top of it.
+		LV_GetText(lvID, A_Index, 14)
+		SummaryData.goodsList[A_Index,"id"] := lvID
+		SummaryData.goodsList[A_Index,"quantity"] := lvQty
+		SummaryData.goodsCount := A_Index
+		Gui, Summary:Default
+		Gui, ListView, Summary_ToBuyLV
+		LV_Add("", lvGood, lvQty)
+	}
+	Gui, Summary:Default
+	Gui, ListView, Summary_ToBuyLV
+	LV_ModifyCol(1, "AutoHdr") ; Auto-size columns
+	LV_ModifyCol(2, "AutoHdr")
+	Gui, Main:Default
+	; Get the position to show the Summary, either on NeoFly or on the Tools.
 	WinGet, nfState, MinMax, ahk_exe NeoFly.exe
 	If (nfState=1 || nfState=0) { ; 1=maximized, 0=shown but not maximized
 		WinGetPos, nfX, nfY, nfW, nfH, ahk_exe NeoFly.exe
@@ -1450,10 +1600,132 @@ Goods_Summary:
 	return
 }
 
-; == Summary window Subroutines ==
+Summary_Buy:
+{
+	Gui, Summary:Default
+	Gui, -AlwaysOnTop ; Otherwise the confirmation msgbox will be hidden
+	Gui, Main:Default
+	GuiControlGet, Settings_GoodsDateFormat
+	; Get the goods information required for database changes
+	If (SummaryData.goodsCount<1) {
+		return
+	}
+	GoodsSelectQuery := ""
+	Loop % SummaryData.goodsCount {
+		qQty := SummaryData.goodsList[A_Index,"quantity"]
+		If (qQty<=0) { ; It was a viable good but we didn't buy any
+			Continue ; Skip this loop
+		}
+		qID := SummaryData.goodsList[A_Index,"id"]
+		qPlaneID := SummaryData.planeID
+		qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "refreshdate")
+		If (A_Index>1) {
+		GoodsSelectQuery := GoodsSelectQuery . "`nUNION ALL`n"
+		}
+		GoodsSelectQueryNext =
+		(
+			SELECT id, %qPlaneID% AS planeid, name, type, unitprice AS buyprice, %qQty% AS quantity, location AS locationbuy, REPLACE(unitweight, ',', '.')*%qQty% AS totalweight, unitweight, 'a' AS expirationdate, ttl
+			FROM goodsMarket
+			WHERE id = %qID%			
+		)
+		GoodsSelectQuery := GoodsSelectQuery . GoodsSelectQueryNext
+	}
+	If !(GoodsSelectResult := SQLiteGetTable(DB, GoodsSelectQuery)) {
+		return
+	}
+	; Determine expiration dates
+	RegRead, dateFormat, HKEY_CURRENT_USER\Control Panel\International, sShortDate
+	RegRead, timeFormat, HKEY_CURRENT_USER\Control Panel\International, sTimeFormat
+	timestampFormat := dateFormat . " " . timeFormat
+	timestampFormat24Force := dateFormat . " " . "HH:mm:ss"
+	totalCost := 0
+	Loop % GoodsSelectResult.RowCount {
+		GoodsSelectResult.Next(GoodsSelectRow)
+		goodExpiration := A_Now
+		EnvAdd, goodExpiration, GoodsSelectRow[11], Hours
+		FormatTime, goodExpiration, %goodExpiration%, %timestampFormat%
+		GoodsSelectRow[10] := goodExpiration
+		totalCost := totalCost + GoodsSelectRow[5]*GoodsSelectRow[6]
+	}
+	GoodsSelectResult.Reset()
+	; Confirm to the user
+	MsgBox, 36, Confirm Goods Purchase, % "Are you sure you want to purchase these goods?`n`nTotal cost will be:`t`t" . prettyNumbers(totalCost, true) . " `n`nNOTE: Currently this script cannot directly edit your bank account, so instead it will add a loan (with 0 interest) of this amount for you to pay later."
+	IfMsgBox Yes
+	{
+		qPilotID := Pilot.id
+		; Open DB with write privileges
+		DB.CloseDB()
+		GuiControlGet, Settings_DBPath
+		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
+			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+			return
+		}
+		; Commit each good
+		Loop % GoodsSelectResult.RowCount {
+			GoodsSelectResult.Next(GoodsSelectRow)
+			lvGMID := GoodsSelectRow[1]
+			lvPlaneID := GoodsSelectRow[2]
+			lvName := GoodsSelectRow[3]
+			lvType := GoodsSelectRow[4]
+			lvBuyPrice := GoodsSelectRow[5]
+			lvQuantity := GoodsSelectRow[6]
+			lvLocationBuy := GoodsSelectRow[7]
+			lvTotalWeight := GoodsSelectRow[8]
+			lvUnitWeight := GoodsSelectRow[9]
+			lvExpirationDate := GoodsSelectRow[10]
+			lvCargoID := "(SELECT IFNULL(id,0) FROM cargo ORDER BY id DESC LIMIT 1)+1"
+			lvLoanID := "(SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1"
+			FormatTime, lvStartDate, , %timestampFormat24Force%
+			lvDuration := FLOOR(lineCost/10000)
+			Gui, Main:Default
+			CargoBuyQuery =
+			(
+				INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
+				VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), '%lvUnitWeight%', '%lvExpirationDate%');
+				
+				UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;			
+			)
+			;UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
+			If (!DB.Exec(CargoBuyQuery)) {
+				MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+				IfMsgBox Yes
+				{
+					clipboard := CargoBuyQuery
+				}
+			}
+		}
+		; Temporary work-around: make a loan for the same amount of the goods we basically just cheated in.
+		LoanOffsetQuery = 
+		(
+			INSERT INTO loans (id, ownerId, amount, interestRate, startDate, duration, statusId, billingInterval)
+			VALUES (%lvLoanID%, %qPilotID%, %totalCost%, 0, '%lvStartDate%', %lvDuration%, 1, 30)
+		)
+		If (!DB.Exec(LoanOffsetQuery)) {
+			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+			IfMsgBox Yes
+			{
+				clipboard := LoanOffsetQuery
+			}
+		}
+		; Close the DB and re-open read-only.
+		DB.CloseDB()
+		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
+			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+			return
+		}
+		Gui, Summary:Default
+		Gui, ListView, Summary_ToBuyLV
+		LV_Delete()
+		GuiControl, Disable, Summary_Buy
+	}
+	Gui, Summary:Default
+	Gui, +AlwaysOnTop
+	return
+}
+
 SummaryGuiClose:
 {
-	Gui, Summary:Destroy
+	Gui, Summary:Hide
 	return
 }
 
@@ -1809,32 +2081,6 @@ AircraftMarket_Compare:
 }
 
 ; == Mission Generator Tab Subroutines ==
-Generator_Backup:
-{
-	Gui, Main:Default
-	SB_SetText("Backing up database...")
-	GuiControlGet, Settings_DBPath
-	MsgBox, 36, Backup Confirmation, Clicking YES will attempt to create a backup of:`n`n%Settings_DBPath%`nas`n%Settings_DBPath%.backup`n`nThis will overwrite any previous backups. Are you sure you want to continue?
-	IfMsgBox Yes 
-	{
-		IfNotExist %Settings_DBPath%
-		{
-			MsgBox, 16, Error, Cannot find file specified. Please double-check your database path in the Settings tab.
-			return
-		}
-		FileCopy, %Settings_DBPath%, %Settings_DBPath%.backup, true
-		If (ErrorLevel) {
-			MsgBox, 16, Error, Could not complete backup. Error:`n%A_LastError%
-		} else {
-			MsgBox, 64, Success!, Backup performed, but it's a good idea to double-check if this was the first time backup up this database.
-		}
-	} else {
-		MsgBox, 64, Aborted, Backup was not performed.
-	}
-	SB_SetText("Database backup performed")
-	return
-}
-
 Generator_FindLatLon:
 {
 	Gui, Main:Default
@@ -1870,12 +2116,14 @@ Generator_FindLatLon:
 Generator_Distance:
 {
 	Gui, Main:Default
-	GuiControlGet, Generator_lonDep
-	GuiControlGet, Generator_latDep
-	GuiControlGet, Generator_lonArriv
-	GuiControlGet, Generator_latArriv
-	distanceNM := ROUND(0.000539957*InvVincenty(Generator_latDep, Generator_lonDep, Generator_latArriv, Generator_lonArriv),0)
-	GuiControl, , Generator_dist, % distanceNM
+	GuiControlGet, Generator_lonDep ; La
+	GuiControlGet, Generator_latDep ; Qa
+	GuiControlGet, Generator_lonArriv ; Lb
+	GuiControlGet, Generator_latArriv ; Qb
+	distanceNM := ROUND(distanceFromCoord(Generator_lonDep, Generator_latDep, Generator_lonArriv, Generator_latArriv))
+	heading := ROUND(headingFromCoord(Generator_lonDep, Generator_latDep, Generator_lonArriv, Generator_latArriv))
+	GuiControl, Text, Generator_dist, % distanceNM
+	GuiControl, Text, Generator_hdg, % heading
 	return
 }
 
@@ -2011,7 +2259,8 @@ Generator_Preview:
 				'%Generator_rankS%' AS rankS,
 				'%Generator_rankI%' AS rankI,
 				'' AS liveID,
-				%qXP% AS xp
+				%qXP% AS xp,
+				%Generator_hdg% AS missionHeading
 		)
 		GeneratorPreviewQuery := GeneratorPreviewQuery . NextPreviewQuery
 		If (A_Index<Generator_Quantity) {
@@ -2036,10 +2285,10 @@ Generator_PreviewLVClick:
 		SB_SetText("Committing mission to database...")
 		Gui, ListView, Goods_PreviewLV
 		varList := ""
+		; Lazy way of getting all the columns into variables for use in the query
 		Loop % LV_GetCount("Column") {
 			LV_GetText(qVar%A_Index%, A_EventInfo, A_Index)
 		}
-
 		GeneratorCommitQuery = 
 		(
 			INSERT INTO missions 
@@ -2078,7 +2327,8 @@ Generator_PreviewLVClick:
 				'%qVar32%' AS rankI,
 				'%qVar33%' AS liveID,
 				%qVar34% AS xp,
-				(SELECT id FROM missions ORDER BY id DESC LIMIT 1)+1 AS id
+				(SELECT id FROM missions ORDER BY id DESC LIMIT 1)+1 AS id,
+				%qVar35% AS missionHeading
 		)
 		
 		DB.CloseDB()
@@ -2288,6 +2538,149 @@ Monitor_Disable:
 	return
 }
 
+; == Company Manager Tab Subroutines == 
+Company_CleanLoans:
+{
+	
+	Gui, Main:Default
+	MsgBox, 36, Confirm Loan Wipe, Are you sure you want to do this?`n`nThis will wipe the Loans and LoanPayments tables of all records of any loans which have a "paid" status for this pilot.`n`nThis information will be non-recoverable.`n`nRecommend backing up your database first.
+	IfMsgBox No
+	{
+		return
+	}
+	SB_SetText("Cleaning up loans...")
+	qOwnerId := Pilot.id
+	CleanLoansQuery = 
+	(
+		DELETE FROM loanpayments WHERE loanId IN (
+			SELECT id FROM loans WHERE ownerID = %qOwnerID% AND statusID = 2 );
+			
+		DELETE FROM loans WHERE ownerID = %qOwnerID% AND statusID = 2;
+	)
+	DB.CloseDB()
+	GuiControlGet, Settings_DBPath
+	If (!DB.OpenDB(Settings_DBPath, "W", false)) {
+		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+		return
+	}
+	If (!DB.Exec(CleanLoansQuery)) {
+		MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+		IfMsgBox Yes
+		{
+			clipboard := CleanLoansQuery
+		}
+		return
+	}
+	
+	; Re-open read only
+	DB.CloseDB()
+	If (!DB.OpenDB(Settings_DBPath, "R", false)) {
+		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+		return
+	}
+	SB_SetText("Loans cleaned")
+}
+
+Company_Finances:
+{
+	SB_SetText("Displaying pilot financials...")
+	Gui, Main:Default
+	GuiControlGet, Company_FinancesPeriod
+	GuiControlGet, Settings_MissionDateFormat
+	Switch Company_FinancesPeriod
+	{
+		Case "24 Hours":
+			qDateMin := "DATETIME('now','localtime','-1 days')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+		Case "7 Days":
+			qDateMin := "DATETIME('now','localtime','-7 days')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+		Case "30 Days":
+			qDateMin := "DATETIME('now','localtime','-30 days')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+		Case "All Time", Default:
+			qDateMin := "DATETIME('now','localtime','-100 years')"
+			qDateMax := "DATETIME('now','localtime','+1 days')"
+	}
+	qBalancesDate := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "date")
+	BalancesSelectQuery = 
+	(
+		SELECT date AS [Transaction Date], description AS Description, incomes AS Income, expenses AS Expenses, '' AS ''
+		FROM balances
+		WHERE owner = (SELECT pilotID FROM currentPilot LIMIT 1)
+		AND [Transaction Date] >= %qDateMin%
+		AND [Transaction Date] <= %qDateMax%
+		ORDER BY [Transaction Date] DESC
+	)
+	clipboard := BalancesSelectQuery
+	If !(BalancesSelectResult := SQLiteGetTable(DB, BalancesSelectQuery)) {
+		return
+	}
+	LV_ShowTable(BalancesSelectResult, "Company_FinancesLV", false)
+	BalancesSelectResult.Reset()
+	; Find the totals
+	expensesTotal := 0
+	incomeTotal := 0
+	fuelTotal := 0
+	airportFeesTotal := 0
+	playerMissionTotal := 0
+	aiMissionTotal := 0
+	insuranceTotal := 0
+	movingTotal := 0
+	loanTakeTotal := 0
+	loanPayTotal := 0
+	goodsBuyTotal := 0
+	goodsSellTotal := 0
+	dispWageTotal := 0
+	fboRentTotal := 0
+	planePurchaseTotal := 0
+	crewHiringTotal := 0
+	Loop % BalancesSelectResult.RowCount {
+		BalancesSelectResult.Next(BalancesSelectRow)
+		netLineAmount := BalancesSelectRow[3] - BalancesSelectRow[4]
+		incomeTotal := incomeTotal + BalancesSelectRow[3]
+		expensesTotal := expensesTotal - BalancesSelectRow[4]
+		If (InStr(BalancesSelectRow[2], "Fuel added")) {
+			fuelTotal += %netLineAmount%
+		} else If (InStr(BalancesSelectRow[2], "Airport fees")) {
+			airportFeesTotal += %netLineAmount%
+		} else If (InStr(BalancesSelectRow[2], "Payment for mission:")) {
+			playerMissionTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Payment for")) {
+			aiMissionTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Insurance cost")) {
+			insuranceTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Moving")) {
+			movingTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "New Loan")) {
+			loanTakeTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Payment on")) {
+			loanPayTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Buy")) {
+			goodsBuyTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Sell")) {
+			goodsSellTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Wage")) {
+			dispWageTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Fbo rent")) {
+			fboRentTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Plane purchase")) {
+			planePurchaseTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Hiring")) {
+			crewHiringTotal += %netLineAmount%
+		}
+	}
+	Gui, ListView, Company_FinancesLV
+	LV_Insert(1, "", "-------", "-------")
+	LV_Insert(1, "", Company_FinancesPeriod, "Net:", prettyNumbers(incomeTotal+expensesTotal, true), "")
+	LV_Insert(1, "", Company_FinancesPeriod, "Totals:", prettyNumbers(incomeTotal, true), prettyNumbers(-expensesTotal, true))
+	LV_ModifyCol(3, "AutoHdr")
+	LV_ModifyCol(4, "AutoHdr")
+	GuiControl, +ReDraw, Company_FinancesLV
+	SB_SetText("Financials displayed")
+	return
+}
+
 ; ==== FUNCTIONS ====
 
 ; == SQL functions ==
@@ -2307,6 +2700,18 @@ SQLiteGetTable(database, query) {
 		return false
 	}
 	return resultTable
+}
+
+SQLitePreviewTable(Table) {
+	global Preview_LV
+	Gui, Preview:Destroy
+	Gui, Preview:New
+	Gui, Preview:Default
+	Gui, Preview:Add, ListView, w800 h600 Grid vPreview_LV
+	LV_ShowTable(Table, "Preview_LV")
+	Gui, Preview:Show
+	Table.Reset()
+	return
 }
 
 SQLiteGenerateDateConversion(format, field) {
@@ -2479,3 +2884,70 @@ Webhook_PostSend(url, postdata) {
 		MsgBox % "Could not send webhook.`n`nError:`n" . e
 	}
 }
+
+GetDateFormat(dateSample) {
+	return
+}
+
+; == Math functions ==
+headingFromCoord(lonA, latA, lonB, latB) {
+	lonA := dtr(lonA)
+	latA := dtr(latA)
+	lonB := dtr(lonB)
+	latB := dtr(latB)
+	dL := lonB - lonA
+	X := cos(latB) * sin(dL)
+	Y := cos(latA)*sin(latB) - sin(latA)*cos(latB)*cos(dL)
+	return MOD(rtd(atan2(X,Y))+360,360)
+}
+
+distanceFromCoord(lonA, latA, lonB, latB) {
+	return 0.000539957*InvVincenty(latA, lonA, latB, lonB)
+}
+
+; == Formatting functions ==
+prettyNumbers(f, isCurrency = false) {
+	LOCALE_USER_DEFAULT = 0x400
+	ffl = 32
+	VarSetCapacity(ff, ffl)
+	DllCall("GetNumberFormat"
+			, "UInt", LOCALE_USER_DEFAULT ; LCID Locale
+			, "UInt", 0 ; DWORD dwFlags
+			, "Str", f ; LPCTSTR lpValue
+			, "UInt", 0 ; CONST NUMBERFMT* lpFormat
+			, "Str", ff ; LPTSTR lpNumberStr
+			, "Int", ffl) ; int cchNumber
+	If (isCurrency) {
+		RegRead, currencySymbol, HKEY_CURRENT_USER,Control Panel\International, sCurrency
+		return currencySymbol . ff
+	} else {
+		return ff
+	}
+}
+
+; NOTES RE DATE FORMATS
+/*
+This is just here to remind me what different date codes have been shown so far.
+
+Mission					|		Goods		
+-----------------------------------------------
+2021-01-25 17:51:55			20/01/2021 20:48:15	
+27/10/2020 02:38:30			03/12/2020 16:15:32			
+22.11.2020 00:00:43			01.12.2020 16:37:53			
+2021-01-21 17:01:29			3/02/2021 11:33:55 AM		
+2021-02-19 04:38:58			2021-02-13 12:30:58 PM
+2021-01-23 23:17:35			1/16/2021 11:48:30 PM
+30/10/2020 06:03:34			30/11/2020 12:51:04
+
+Assumptions:
+
+Date format always follows HKEY_CURRENT_USER\Control Panel\International, sShortDate
+Time format follows HKEY_CURRENT_USER\Control Panel\International, sTimeFormat ONLY FOR GOODS. Missions seem to always use 24hr format.
+
+*/
+
+
+
+
+
+
