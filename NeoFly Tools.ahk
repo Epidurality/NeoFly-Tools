@@ -898,7 +898,7 @@ Goods_RefreshMissions:
 	GuiControlGet, Goods_MaxRange
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
-	If (false) { ; REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
+	If (true) { ; REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
 		validMarketQuery = 
 		(
 			SELECT 
@@ -913,7 +913,7 @@ Goods_RefreshMissions:
 			return
 		}
 		If !(validMarketResult.RowCount) {
-			GuiControl, , Goods_MissionsText, % "Could not find valid market at Departure ICAO: '" . Goods_DepartureICAO . "'"
+			GuiControl, , Goods_MissionsText, % "You MUST Search the market at departure ICAO: '" . Goods_DepartureICAO . "'"
 			LV_Clear("Goods_MissionsLV")
 			LV_Clear("Goods_TradeMissionsLV")
 			LV_Clear("Goods_TradesLV")
@@ -1649,7 +1649,7 @@ Summary_Buy:
 	}
 	GoodsSelectResult.Reset()
 	; Confirm to the user
-	MsgBox, 36, Confirm Goods Purchase, Are you sure you want to purchase these goods?`n`nTotal cost will be:`t`t $%totalCost% `n`nNOTE: Currently this script cannot directly edit your bank account, so instead it will add a loan (with 0`% interest) of this amount for you to pay later.
+	MsgBox, 36, Confirm Goods Purchase, % "Are you sure you want to purchase these goods?`n`nTotal cost will be:`t`t" . prettyNumbers(totalCost, true) . " `n`nNOTE: Currently this script cannot directly edit your bank account, so instead it will add a loan (with 0 interest) of this amount for you to pay later."
 	IfMsgBox Yes
 	{
 		qPilotID := Pilot.id
@@ -2541,12 +2541,14 @@ Monitor_Disable:
 ; == Company Manager Tab Subroutines == 
 Company_CleanLoans:
 {
+	
 	Gui, Main:Default
 	MsgBox, 36, Confirm Loan Wipe, Are you sure you want to do this?`n`nThis will wipe the Loans and LoanPayments tables of all records of any loans which have a "paid" status for this pilot.`n`nThis information will be non-recoverable.`n`nRecommend backing up your database first.
 	IfMsgBox No
 	{
 		return
 	}
+	SB_SetText("Cleaning up loans...")
 	qOwnerId := Pilot.id
 	CleanLoansQuery = 
 	(
@@ -2576,10 +2578,12 @@ Company_CleanLoans:
 		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
 		return
 	}
+	SB_SetText("Loans cleaned")
 }
 
 Company_Finances:
 {
+	SB_SetText("Displaying pilot financials...")
 	Gui, Main:Default
 	GuiControlGet, Company_FinancesPeriod
 	GuiControlGet, Settings_MissionDateFormat
@@ -2606,7 +2610,7 @@ Company_Finances:
 		WHERE owner = (SELECT pilotID FROM currentPilot LIMIT 1)
 		AND [Transaction Date] >= %qDateMin%
 		AND [Transaction Date] <= %qDateMax%
-		ORDER BY [Transaction Date]
+		ORDER BY [Transaction Date] DESC
 	)
 	clipboard := BalancesSelectQuery
 	If !(BalancesSelectResult := SQLiteGetTable(DB, BalancesSelectQuery)) {
@@ -2630,6 +2634,7 @@ Company_Finances:
 	dispWageTotal := 0
 	fboRentTotal := 0
 	planePurchaseTotal := 0
+	crewHiringTotal := 0
 	Loop % BalancesSelectResult.RowCount {
 		BalancesSelectResult.Next(BalancesSelectRow)
 		netLineAmount := BalancesSelectRow[3] - BalancesSelectRow[4]
@@ -2661,17 +2666,20 @@ Company_Finances:
 			fboRentTotal += %netLineAmount%
 		} else if (InStr(BalancesSelectRow[2], "Plane purchase")) {
 			planePurchaseTotal += %netLineAmount%
+		} else if (InStr(BalancesSelectRow[2], "Hiring")) {
+			crewHiringTotal += %netLineAmount%
 		}
 	}
 	Gui, ListView, Company_FinancesLV
 	LV_Insert(1, "", "-------", "-------")
-	LV_Insert(1, "", Company_FinancesPeriod, "NET: " . incomeTotal+expensesTotal . "     TOTALS:", incomeTotal, -expensesTotal)
+	LV_Insert(1, "", Company_FinancesPeriod, "Net:", prettyNumbers(incomeTotal+expensesTotal, true), "")
+	LV_Insert(1, "", Company_FinancesPeriod, "Totals:", prettyNumbers(incomeTotal, true), prettyNumbers(-expensesTotal, true))
 	LV_ModifyCol(3, "AutoHdr")
 	LV_ModifyCol(4, "AutoHdr")
 	GuiControl, +ReDraw, Company_FinancesLV
+	SB_SetText("Financials displayed")
 	return
 }
-
 
 ; ==== FUNCTIONS ====
 
@@ -2882,21 +2890,6 @@ GetDateFormat(dateSample) {
 }
 
 ; == Math functions ==
-/*
-atan2(y,x) {
-    Return atan(y/x)+2*(1+(x<0))*atan((x<=0)*((y>=0)-(y<0)))
-}
-
-
-degToRad(degrees) {
-	return degrees*0.01745329252
-}
-
-radToDeg(radians) {
-	return radians*57.29578
-}
-*/
-
 headingFromCoord(lonA, latA, lonB, latB) {
 	lonA := dtr(lonA)
 	latA := dtr(latA)
@@ -2911,8 +2904,29 @@ headingFromCoord(lonA, latA, lonB, latB) {
 distanceFromCoord(lonA, latA, lonB, latB) {
 	return 0.000539957*InvVincenty(latA, lonA, latB, lonB)
 }
+
+; == Formatting functions ==
+prettyNumbers(f, isCurrency = false) {
+	LOCALE_USER_DEFAULT = 0x400
+	ffl = 32
+	VarSetCapacity(ff, ffl)
+	DllCall("GetNumberFormat"
+			, "UInt", LOCALE_USER_DEFAULT ; LCID Locale
+			, "UInt", 0 ; DWORD dwFlags
+			, "Str", f ; LPCTSTR lpValue
+			, "UInt", 0 ; CONST NUMBERFMT* lpFormat
+			, "Str", ff ; LPTSTR lpNumberStr
+			, "Int", ffl) ; int cchNumber
+	If (isCurrency) {
+		RegRead, currencySymbol, HKEY_CURRENT_USER,Control Panel\International, sCurrency
+		return currencySymbol . ff
+	} else {
+		return ff
+	}
+}
+
+; NOTES RE DATE FORMATS
 /*
-NOTES RE: DATE CODES:
 This is just here to remind me what different date codes have been shown so far.
 
 Mission					|		Goods		
