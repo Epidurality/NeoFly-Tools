@@ -171,21 +171,21 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalHard gGoods_RefreshMissions, Hard Rwy
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalTower gGoods_RefreshMissions, Tower
 	Gui, Add, Text, x+20, Min Rwy Len.
-	Gui, Add, Edit, x+10 w100 vGoods_ArrivalRwyLen, 1000
-	Gui, Add, Checkbox, x+5 vGoods_AutoRwyLen, Auto`nLen
+	Gui, Add, Edit, x+10 w50 vGoods_ArrivalRwyLen, 0
+	Gui, Add, Checkbox, x+5 vGoods_AutoRwyLen Checked, Auto
 
-	Gui, Add, Button, xm+10 y+0 gGoods_RefreshMissions, Refresh Missions
+	Gui, Add, Button, xm+10 y+10 gGoods_RefreshMissions, Refresh Missions
 	Gui, Add, Text, x+20, Goods Filters:
 	Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit gGoods_RefreshMissions, Illicit
 	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked gGoods_RefreshMissions, Fragile
 	Gui, Add, Checkbox, x+20 vGoods_IncludePerishable Checked gGoods_RefreshMissions, Perishable
 	Gui, Add, Checkbox, x+20 vGoods_IncludeNormal Checked gGoods_RefreshMissions, Normal
-	Gui, Add, CheckBox, x+20 vGoods_Overweight gGoods_OverweightToggle, Overweight:
-	Gui, Add, Edit, x+0 vGoods_MaxOverweight gGoods_OverweightToggle w50 h20 Disabled, 99999
-	Gui, Add, Text, x+0, lbs
+	Gui, Add, Text, x+20,  Overweight:
+	Gui, Add, Edit, x+2 vGoods_MaxOverweight w50 h20, 0
+	Gui, Add, Text, x+2, lbs
 	Gui, Add, Text, x+20, Max Range:
-	Gui, Add, Edit, x+0 vGoods_MaxRange w40 h20, 9999
-	Gui, Add, Checkbox, x+5 vGoods_AutoMaxRange, Auto Range
+	Gui, Add, Edit, x+2 vGoods_MaxRange w40 h20, 9999
+	Gui, Add, Checkbox, x+5 vGoods_AutoMaxRange Checked, Auto
 	
 	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
@@ -815,32 +815,6 @@ Goods_HangarLVClick:
 	return
 }
 
-Goods_OverweightToggle:
-{
-	Gui, Main:Default
-	GuiControlGet, Goods_AllowOverweight
-	If (Goods_Overweight) {
-		GuiControl, Enable, Goods_MaxOverweight
-	} else {
-		GuiControl, Disable, Goods_MaxOverweight
-	}
-	GoSub Goods_RefreshMissions
-	return
-}
-
-Goods_LimitRangeToggle: 
-{
-	Gui, Main:Default
-	GuiControlGet, Goods_LimitRange
-	If (Goods_LimitRange) {
-		GuiControl, Enable, Goods_MaxRange
-	} else {
-		GuiControl, Disable, Goods_MaxRange
-	}
-	GoSub Goods_RefreshMissions
-	return
-}
-
 Goods_RefreshMissions:
 {
 	Gui, Main:Default
@@ -871,7 +845,6 @@ Goods_RefreshMissions:
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	GuiControlGet, Goods_ShowTradeMissions
-	GuicontrolGet, Goods_AllowOverweight
 	GuiControlGet, Goods_MaxOverweight
 	GuiControlGet, Goods_ArrivalTower
 	GuiControlGet, Goods_ShowAllNFMissions
@@ -930,7 +903,7 @@ Goods_RefreshMissions:
 		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
 		return
 	}
-	qPayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo
+	qPayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
 	If (qPayload<200) {
 		GuiControl, Text, Goods_WarningText, % "Available plane payload is only " . qPayload . "lbs, and may limit search results."
 	}
@@ -1061,7 +1034,7 @@ Goods_RefreshMissions:
 			}
 			If (NFMissionsGoodsResult.RowCount) {
 				totalProfit := 0
-				availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-qMissionCargo
+				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-qMissionCargo
 				Loop % NFMissionsGoodsResult.RowCount {
 					NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
 					maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
@@ -1204,7 +1177,7 @@ Goods_RefreshMissions:
 					return
 				}
 				totalProfit := 0
-				availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo
+				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
 				Loop % TradesGoodsResult.RowCount {
 					TradesGoodsResult.Next(TradesGoodsRow)
 					maxQty := FLOOR(MIN(TradesGoodsRow[4], availablePayload/TradesGoodsRow[2]))
@@ -1438,7 +1411,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
-	availablePayload := Plane.payload-MAX(Plane.fuel*(!Goods_AllowOverweight), Plane.fuel-Goods_MaxOverweight)-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
+	availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
 	OptimalResult.ColumnNames[12] := "Profit"
@@ -1583,7 +1556,7 @@ Summary_Buy:
 	GoodsSelectQuery := ""
 	Loop % SummaryData.goodsCount {
 		qQty := SummaryData.goodsList[A_Index,"quantity"]
-		If (qQty<=0) { ; IT was a viable good but we didn't buy any
+		If (qQty<=0) { ; It was a viable good but we didn't buy any
 			Continue ; Skip this loop
 		}
 		qID := SummaryData.goodsList[A_Index,"id"]
@@ -1696,63 +1669,6 @@ Summary_Buy:
 SummaryGuiClose:
 {
 	Gui, Summary:Hide
-	return
-}
-
-; == Confirmation Window Subroutines == 
-Confirmation_Confirm:
-{
-	Gui, Confirmation:Default
-	Gui, ListView, Confirmation_CargoLV
-	qPilotID := Pilot.id
-	Loop % LV_GetCount() {
-		Gui, Confirmation:Default
-		Gui, ListView, Confirmation_CargoLV
-		LV_GetText(lvGMID, A_Index, 1)
-		LV_GetText(lvPlaneID, A_Index, 2)
-		LV_GetText(lvName, A_Index, 3)
-		LV_GetText(lvType, A_Index, 4)
-		LV_GetText(lvBuyPrice, A_Index, 5)
-		LV_GetText(lvQuantity, A_Index, 6)
-		LV_GetText(lvLocationBuy, A_Index, 7)
-		LV_GetText(lvTotalWeight, A_Index, 8)
-		LV_GetText(lvUnitWeight, A_Index, 9)
-		LV_GetText(lvExpirationDate, A_Index, 10)
-		lvCargoID := "(SELECT IFNULL(id,1) FROM cargo ORDER BY id DESC LIMIT 1)+1"
-		lineCost := ROUND(lvBuyPrice*lvQuantity)
-		Gui, Main:Default
-		CargoBuyQuery =
-		(
-			INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
-			VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), %lvUnitWeight%, '%lvExpirationDate%');
-			
-			UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
-			
-			UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;
-		)
-		DB.CloseDB()
-		GuiControlGet, Settings_DBPath
-		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
-			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-			return
-		}
-		If (!DB.Exec(CargoBuyQuery)) {
-			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
-			IfMsgBox Yes
-			{
-				clipboard := CargoBuyQuery
-			}
-		}
-		DB.CloseDB()
-		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
-			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-			return
-		}
-	}
-	Gui, Confirmation:Destroy
-	Gui, Summary:Default
-	LV_Clear("Summary_ToBuyLV")
-	GuiControl, Disable, Summary_Buy
 	return
 }
 
