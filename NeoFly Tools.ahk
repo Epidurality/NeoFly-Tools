@@ -117,7 +117,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 
 	Gui, Add, Text, xm+10 y+30, Selected Pilot:
 	Gui, Add, Text, x+10 vSettings_Pilot, Connect to a database to get pilot information.
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick
+	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick -Multi
 	Gui, Add, Text, xm+10 y+20,
 	(
 	Notes:
@@ -132,7 +132,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+20 w150 y+-40 gSettings_TimestampPreview, Preview These Settings
 	Gui, Add, Text, xm+10 y+25, Note: The '/' can be any character and leading zeroes don't matter, for example: yyyy.m.d format will work when using yyyy/mm/dd option. Use the button above to double-check.`nNote: Missions and Goods may use different formats depending on your locale.
 	Gui, Add, Text, xm+10 y+20, Date Formatting Samples from Database:`t`t`tNote: These dates are drawn from the Missions and GoodsMarket tables, so you must have data in them.
-	Gui, Add, ListView, xm+10 y+10 w915 h150 Count1000 vSettings_TimestampLV, 
+	Gui, Add, ListView, xm+10 y+10 w915 h150 Count1000 vSettings_TimestampLV -Multi
 }
 
 ; GUI Goods Optimizer tab
@@ -154,7 +154,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
 	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_ManageOptions, Auto-Manage Options
 	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
-	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick
+	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
 
 	Gui, Add, Button, xm+100 y105 h20 w150 gSummary_Show, Summary / AutoBuy
 	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
@@ -194,18 +194,18 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
 	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions
 	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show Missions w/o Trades
-	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick
+	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick -Multi
 
 	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
 	Gui, Add, Text, x+5 w500 vGoods_TradeMissionsText, 
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Count500 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick
+	Gui, Add, ListView, xm+10 y+10 w915 h100 Count500 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick -Multi
 
 	Gui, Add, Text, xm+10 y+10 vGoods_Trades, Optimal Goods:
 	Gui, Add, Text, x+5 w300 vGoods_OptimalGoodsText,
 	Gui, Font, cRed
 	Gui, Add, Text, x+10 w500 vGoods_WarningText
 	Gui, Font
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_TradesLV
+	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_TradesLV -Multi
 }
 
 ; GUI Auto-Market
@@ -269,7 +269,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 
 	Gui, Add, Text, xm+10 y+10, Markets:
 	Gui, Add, Text, x+10 w500 vMarket_MarketsText, Press Search to display relevant markets
-	Gui, Add, ListView, xm+10 y+10 w915 h400 Grid vMarket_MarketLV
+	Gui, Add, ListView, xm+10 y+10 w915 h400 Grid vMarket_MarketLV -Multi
 }
 
 ; GUI Aircraft Market tab
@@ -281,7 +281,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Button, x+150 gAircraftMarket_Compare, Compare Models
 	Gui, Add, Text, xm+10 y+20, Matching Aircraft:
 	Gui, Add, Text, x+10 w500 vAircraftMarket_AircraftText, Press Search to find aircraft in the market
-	Gui, Add, ListView, xm+10 y+10 w915 h450 Grid vAircraftMarket_LV
+	Gui, Add, ListView, xm+10 y+10 w915 h450 Grid vAircraftMarket_LV -Multi
 	Gui, Add, Text, xm+10 y+20, Note: Travel Cost represents a one-way trip from your pilot's current location to the plane's Location.
 	Gui, Add, Text, xm+10 y+20, % "Other Note: Effective Payload is the payload of the plane after subtracting the Pilot's weight (" . Pilot.weight . "lbs) and " . ROUND(fuelPercentForAircraftMarketPayload*100,0) . "% of max fuel."
 }
@@ -367,20 +367,28 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	
 	Gui, Add, Text, xm+10 y+20, Hangar:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HangarLastChecked, ---
-	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HangarLV Disabled,
+	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HangarLV Disabled -Multi
 
 	Gui, Add, Text, xm+10 y+20, Hired Jobs:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HiredLastChecked, ---
-	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled,
+	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled -Multi
 }
 
 ; Gui Company Manager tab
 {
 	Gui, Tab, Company Manager
-	Gui, Add, Button, xm+10 y70 gCompany_CleanLoans, Clean Up Loans
-	Gui, Add, Button, xm+10 y+20 gCompany_Finances, View Finances
+	Gui, Add, GroupBox, xm+10 y70 w915 h265 Section, Finances
+	Gui, Add, Button, xs+10 ys+20 gCompany_Finances, View Finances
 	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
-	Gui, Add, ListView, xm+10 y+10 w915 h200 Grid vCompany_FinancesLV
+	Gui, Add, Button, x+150 gCompany_CleanLoans, Clean Up Loans
+	Gui, Add, ListView, xs+10 y+10 w895 h200 Grid vCompany_FinancesLV -Multi
+	
+	Gui, Add, GroupBox, xm+10 y+20 w915 h250 Section, Crew
+	Gui, Add, Button, xs+10 ys+20 gCompany_CrewRefresh, Refresh
+	Gui, Add, Text, x+10, Duration:
+	Gui, Add, Edit, x+5 w30 vCompany_CrewDuration, 1
+	Gui, Add, Text, x+2, day(s)
+	Gui, Add, ListView, x+10 w400 h100 vCompany_CrewLV gCompany_CrewLVClick Grid -Multi
 }
 
 ; Gui Flight Tools tab
@@ -1685,6 +1693,7 @@ Summary_Buy:
 	timestampFormat := dateFormat . " " . timeFormat
 	timestampFormat24Force := dateFormat . " " . "HH:mm:ss"
 	totalCost := 0
+	; Format the dates and calculate totals
 	Loop % GoodsSelectResult.RowCount {
 		GoodsSelectResult.Next(GoodsSelectRow)
 		goodExpiration := A_Now
@@ -2728,6 +2737,92 @@ Company_Finances:
 	return
 }
 
+Company_CrewRefresh:
+{
+	SB_SetText("Refreshing available AI crew...")
+	Gui, Main:Default
+	AipilotsListQuery =
+	(
+		SELECT id AS ID, name AS Name, wages AS [Wages/day],
+			IIF(catA='TRUE', 'A ', '') || IIF(catB='TRUE', 'B ', '') || IIF(catC='TRUE', 'C ', '') || IIF(catD='TRUE', 'D ', '') || IIF(catE='TRUE', 'E ', '')|| IIF(catF='TRUE', 'F ', '') AS Qualifications
+		FROM aipilots
+		WHERE status = 0
+		ORDER BY id ASC
+	)
+	If !(AipilotsListResult := SQLiteGetTable(DB, AipilotsListQuery)) {
+		return
+	}
+	LV_ShowTable(AipilotsListResult, "Company_CrewLV")
+	SB_SetText("AI crew refreshed...")
+	return
+}
+
+Company_CrewLVClick:
+{
+	If (A_GuiEvent = "DoubleClick") {
+		If (A_EventInfo == 0) {
+			return
+		}
+		Gui, Main:Default
+		GuiControlGet, Company_CrewDuration
+		Gui, ListView, Company_CrewLV
+		LV_GetText(lvID, A_EventInfo, 1)
+		LV_GetText(lvName, A_EventInfo, 2)
+		LV_GetText(lvWages, A_EventInfo, 3)
+		qCost := CEIL(lvWages * Company_CrewDuration)
+		qDateHiring := A_Now
+		qDateEnd := A_Now
+		EnvAdd, qDateEnd, Company_CrewDuration, Days
+		qLoanStartDate := TimestampFormat(qDateHiring, true)
+		qDateHiring := TimestampFormat(qDateHiring)
+		qDateEnd := TimestampFormat(qDateEnd)
+		qLoanDuration := FLOOR(qCost/10000)
+		qPilotID := Pilot.id
+		MsgBox, 36, Confirm Hiring, % "Cost (in the form of a loan) will be " . PrettyNumbers(qCost,true) . " for " . Company_CrewDuration . " days of service, payable up-front.`n`nHire " . lvName . " from now until " . qDateEnd "?"
+		IfMsgBox Yes
+		{
+			CrewHireQuery =
+			(
+				UPDATE aipilots SET status = 1
+				WHERE id = %lvID%;
+				
+				INSERT INTO crew (id, owner, name, pilotCurrentICAO, totalFlyTime, XP, weight, dexterity, efficiency, health, rank, catA, catB, catC, catD, catE, catF, status, wages, datehiring, dateend, idRentJob)
+				VALUES (
+					(SELECT IFNULL(id,0) FROM crew ORDER BY id DESC LIMIT 1)+1,
+					%qPilotID%,
+					(SELECT name FROM aipilots WHERE id = %lvID%),
+					(SELECT pilotCurrentICAO FROM aipilots WHERE id = %lvID%),
+					(SELECT totalFlyTime FROM aipilots WHERE id = %lvID%),
+					(SELECT XP FROM aipilots WHERE id = %lvID%),
+					(SELECT weight FROM aipilots WHERE id = %lvID%),
+					(SELECT dexterity FROM aipilots WHERE id = %lvID%),
+					(SELECT efficiency FROM aipilots WHERE id = %lvID%),
+					(SELECT health FROM aipilots WHERE id = %lvID%),
+					(SELECT rank FROM aipilots WHERE id = %lvID%),
+					(SELECT catA FROM aipilots WHERE id = %lvID%),
+					(SELECT catB FROM aipilots WHERE id = %lvID%),
+					(SELECT catC FROM aipilots WHERE id = %lvID%),
+					(SELECT catD FROM aipilots WHERE id = %lvID%),
+					(SELECT catE FROM aipilots WHERE id = %lvID%),
+					(SELECT catF FROM aipilots WHERE id = %lvID%),
+					0,
+					(SELECT wages FROM aipilots WHERE id = %lvID%),
+					'%qDateHiring%',
+					'%qDateEnd%',
+					0);
+					
+				INSERT INTO loans (id, ownerId, amount, interestRate, startDate, duration, statusId, billingInterval)
+				VALUES ((SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1, %qPilotID%, %qCost%, 0, '%qLoanStartDate%', %qLoanDuration%, 1, 30);
+			)
+			If !(SQLiteExecute(DB, CrewHireQuery)) {
+				return
+			}
+			GoSub Company_CrewRefresh
+		}
+	}
+	return
+}
+
 ; == Flight Tools Tab Subroutines == 
 Flight_CalculateDescent:
 {
@@ -2803,6 +2898,30 @@ SQLiteGetTable(database, query) {
 		return false
 	}
 	return resultTable
+}
+
+SQLiteExecute(database, query) {
+	dbPath := database._Path
+	database.CloseDB()
+	If (!database.OpenDB(dbPath, "W", false)) {
+		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . database.ErrorMsg . "`nCode:`t" . database.ErrorCode
+		return false
+	}
+	If (!database.Exec(query)) {
+		MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . database.ErrorMsg . "`nCode:`t" . database.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
+		IfMsgBox Yes
+		{
+			clipboard := query
+		}
+		return false
+	}
+	; Close the DB and re-open read-only.
+	database.CloseDB()
+	If (!database.OpenDB(dbPath, "R", false)) {
+		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . database.ErrorMsg . "`nCode:`t" . database.ErrorCode
+		return false
+	}
+	return true
 }
 
 SQLitePreviewTable(Table) {
@@ -2993,7 +3112,7 @@ GetDateFormat(dateSample) {
 }
 
 ; == Math functions ==
-headingFromCoord(lonA, latA, lonB, latB) {
+HeadingFromCoord(lonA, latA, lonB, latB) {
 	lonA := dtr(lonA)
 	latA := dtr(latA)
 	lonB := dtr(lonB)
@@ -3004,12 +3123,12 @@ headingFromCoord(lonA, latA, lonB, latB) {
 	return MOD(rtd(atan2(X,Y))+360,360)
 }
 
-distanceFromCoord(lonA, latA, lonB, latB) {
+DistanceFromCoord(lonA, latA, lonB, latB) {
 	return 0.000539957*InvVincenty(latA, lonA, latB, lonB)
 }
 
 ; == Formatting functions ==
-prettyNumbers(inputNumber, isCurrency = false) {
+PrettyNumbers(inputNumber, isCurrency = false) {
 	LOCALE_USER_DEFAULT = 0x400
 	ffl = 32
 	VarSetCapacity(ff, ffl)
@@ -3027,6 +3146,18 @@ prettyNumbers(inputNumber, isCurrency = false) {
 		return ff
 	}
 }
+
+TimestampFormat(timestampToFormat, force24 = false) {
+	RegRead, dateFormat, HKEY_CURRENT_USER\Control Panel\International, sShortDate
+	RegRead, timeFormat, HKEY_CURRENT_USER\Control Panel\International, sTimeFormat
+	If (force24) {
+		timestampFormat24Force := dateFormat . " " . "HH:mm:ss"
+	} else {
+		timestampFormat := dateFormat . " " . timeFormat
+	}
+	FormatTime, returnText, %timestampToFormat%, %timestampFormat%
+	return returnText
+}		
 
 ; NOTES RE DATE FORMATS
 /*
