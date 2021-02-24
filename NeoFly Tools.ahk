@@ -39,6 +39,7 @@ global hideTrayIcon
 global autoMarketHotkey
 global autoMarketStopHotkey
 global discordWebhookURL
+global debugFlag
 
 
 ; Read from the INI
@@ -52,6 +53,8 @@ IniRead, hideTrayIcon, %iniPath%, Setup, hideTrayIcon, 0
 IniRead, autoMarketHotkey, %iniPath%, Setup, autoMarketHotkey, NumpadEnter
 IniRead, autoMarketStopHotkey, %iniPath%, Setup, autoMarketStopHotkey, NumpadSub
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
+IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
+IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 }
 
 ; ==== Main GUI ====
@@ -152,7 +155,7 @@ IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
-	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_ManageOptions, Auto-Manage Options
+	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_RefreshMissions, Auto-Manage Options
 	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
 
@@ -236,8 +239,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Font, Bold
 	Gui, Add, Text, xm+10 y+30, Please read the included Readme for instructions on using this part of the tool.
 	Gui, Font
-	
-}	
+}
 
 ; GUI Market Finder tab
 {
@@ -380,6 +382,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, GroupBox, xm+10 y70 w915 h265 Section, Finances
 	Gui, Add, Button, xs+10 ys+20 gCompany_Finances, View Finances
 	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
+	Gui, Add, Button, x+150 gCompany_ConsolidateLoans, Consolidate Loans
 	Gui, Add, Button, x+150 gCompany_CleanLoans, Clean Up Loans
 	Gui, Add, ListView, xs+10 y+10 w895 h200 Grid vCompany_FinancesLV -Multi
 	
@@ -404,6 +407,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Edit, x+5 w50 vFlight_Speed, 120
 	Gui, Add, Text, x+20, Glide Slope (deg):
 	Gui, Add, Edit, x+5 w50 vFlight_GlideSlope, 3
+	Gui, Font, Underline cBlue
+	Gui, Add, Text, x+40 gFlight_Skyvector, SkyVector Link
+	Gui, Font
 	
 	Gui, Add, Button, xs y+10 gFlight_CalculateDescent, Calculate Descent
 	Gui, Add, Text, x+40, Start at (nm):
@@ -412,6 +418,10 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+5 w50 vFlight_DescentRate, ---
 	Gui, Add, Text, x+20, Airport Altitude (ft):
 	Gui, Add, Text, x+5 w50 vFlight_AirportAlt, ---
+	Gui, Add, Text, xs+375 y+15, Tower Freq:
+	Gui, Add, Text, x+5 w100 vFlight_AirportTowerFreq, ---
+	Gui, Add, Text, x+10, Weather Freq:
+	Gui, Add, Text, x+5 w100 vFlight_AirportWeatherFreq, ---
 	
 	Gui, Add, GroupBox, xm+10 y+50 w915 h60, Stopwatch
 	Gui, Font, s15
@@ -420,6 +430,16 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Button, x+10 w60 vFlight_StopwatchStart gFlight_StopwatchStart, Start
 	Gui, Add, Button, x+20 w60 vFlight_StopwatchStop gFlight_StopwatchStop Disabled, Stop
 }
+
+; Gui Debug tab
+{
+	If (debugFlag) {
+		GuiControl,,GUI_Tabs, Debug
+		Gui, Tab, Debug
+		Gui, Add, Button, xm+10 y90 w100 gDebug_Test, Test
+	}
+}
+
 
 ; ==== Summary GUI ====
 {
@@ -807,7 +827,7 @@ Goods_RefreshHangar:
 			SELECT planeid, SUM(totalweight) AS totalCargo FROM cargo GROUP BY planeid ) AS onboardCargo ON hangar.id = onboardCargo.planeid
 		WHERE owner=%qPilotID% 
 		AND %qStatusClause%
-		ORDER BY hangar.tailNumber, hangar.id
+		ORDER BY hangar.id
 	)
 	If !(hangarResult := SQLiteGetTable(DB, hangarQuery)) {
 		return
@@ -950,58 +970,38 @@ Goods_RefreshMissions:
 	GuiControlGet, Goods_ArrivalTower
 	GuiControlGet, Goods_ShowAllNFMissions
 	GuiControlGet, Goods_MaxRange
+	; Get the user's current money
+	qPilotID := Pilot.id
+	PilotCashQuery = 
+	(
+		SELECT cash FROM career WHERE id = %qPilotID%
+	)
+	If !(PilotCashResult := SQLiteGetTable(DB, PilotCashQuery)) {
+		return
+	}
+	PilotCashResult.GetRow(1, PilotCashRow)
+	PilotCash := PilotCashRow[1]
 	; Check to see if the Departure ICAO has a valid market.
 	qRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
-	If (true) { ; REMOVING NOW THAT THE ALL MISSION CHECKBOX EXISTS, BUT KEEPING IN CASE THIS CAUSES OTHER ISSUES.
-		validMarketQuery = 
-		(
-			SELECT 
-				ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)]
-			FROM goodsMarket AS gm
-			WHERE 
-				gm.location = '%Goods_DepartureICAO%'
-				AND [Time Left (hrs)] > 0
-			LIMIT 1
-		)
-		If !(validMarketResult := SQLiteGetTable(DB, validMarketQuery)) {
-			return
-		}
-		If !(validMarketResult.RowCount) {
-			GuiControl, , Goods_MissionsText, % "You MUST Search the market at departure ICAO: '" . Goods_DepartureICAO . "'"
-			LV_Clear("Goods_MissionsLV")
-			LV_Clear("Goods_TradeMissionsLV")
-			LV_Clear("Goods_TradesLV")
-			SB_SetText("Unable to refresh missions")
-			return
-		}
+	validMarketQuery = 
+	(
+		SELECT 
+			ROUND((JULIANDAY(%qRefreshDateField%)-JULIANDAY('now', 'localtime'))*24+%marketRefreshHours%, 2) AS [Time Left (hrs)]
+		FROM goodsMarket AS gm
+		WHERE 
+			gm.location = '%Goods_DepartureICAO%'
+			AND [Time Left (hrs)] > 0
+		LIMIT 1
+	)
+	If !(validMarketResult := SQLiteGetTable(DB, validMarketQuery)) {
+		return
 	}
-	goodsChecked := 0
-	If (Goods_IncludeIllicit) {
-		qIllicit := "!= -1"
-		goodsChecked := 1
-	} Else {
-		qIllicit := "!= 4"
-	}
-	If (Goods_IncludeNormal) {
-		qNormal := "!= -1"
-		goodsChecked := 1
-	} Else {
-		qNormal := "!= 1"
-	}
-	If (Goods_IncludeFragile) {
-		qFragile := "!= -1"
-		goodsChecked := 1
-	} Else {
-		qFragile := "!= 2"
-	}
-	If (Goods_IncludePerishable) {
-		qPerishable := "!= -1"
-		goodsChecked := 1
-	} Else {
-		qPerishable := "!= 3"
-	}
-	if (goodsChecked=0) {
-		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
+	If !(validMarketResult.RowCount) {
+		GuiControl, , Goods_MissionsText, % "You MUST Search the market at departure ICAO: '" . Goods_DepartureICAO . "'"
+		LV_Clear("Goods_MissionsLV")
+		LV_Clear("Goods_TradeMissionsLV")
+		LV_Clear("Goods_TradesLV")
+		SB_SetText("Unable to refresh missions")
 		return
 	}
 	qPayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
@@ -1020,7 +1020,6 @@ Goods_RefreshMissions:
 		qGoodsJoinReq := ""
 		qGoodsWhereReq := "AND [Time Left (hrs)] > 0"
 	}
-	
 	NFMissionsQuery =
 	(
 		SELECT
@@ -1074,6 +1073,35 @@ Goods_RefreshMissions:
 		return
 	}
 	; Analyze NeoFly missions
+	goodsChecked := 0
+	If (Goods_IncludeIllicit) {
+		qIllicit := "!= -1"
+		goodsChecked := 1
+	} Else {
+		qIllicit := "!= 4"
+	}
+	If (Goods_IncludeNormal) {
+		qNormal := "!= -1"
+		goodsChecked := 1
+	} Else {
+		qNormal := "!= 1"
+	}
+	If (Goods_IncludeFragile) {
+		qFragile := "!= -1"
+		goodsChecked := 1
+	} Else {
+		qFragile := "!= 2"
+	}
+	If (Goods_IncludePerishable) {
+		qPerishable := "!= -1"
+		goodsChecked := 1
+	} Else {
+		qPerishable := "!= 3"
+	}
+	if (goodsChecked=0) {
+		MsgBox, 48, Error: No goods types, You must include at least 1 type of good.
+		return
+	}
 	If !(NFMissionsResult.RowCount) { ; If none are displayed, show the user a bit more detail of why that might be
 		NFMissionsCheckQuery =
 		(
@@ -1088,7 +1116,7 @@ Goods_RefreshMissions:
 			GuiControl, , Goods_MissionsText, % "Found current missions at '" . Goods_DepartureICAO . "', but either don't meet criteria or don't have markets at destinations."
 		}
 		SB_SetText("No viable NeoFly Missions found")
-	} else {
+	} else { ; There are valid goods, so tally them up
 		GuiControl, , Goods_MissionsText, % "Analyzing " NFMissionsResult.RowCount . " missions..."
 		qDepRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dep.refreshDate")
 		qDestRefreshDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dest.refreshDate")
@@ -1099,6 +1127,7 @@ Goods_RefreshMissions:
 		}
 		Loop % NFMissionsResult.RowCount {
 			NFMissionsResult.Next(NFMissionsRow)
+			NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0) ; Calculate the initial Income/nm in case trades aren't viable
 			If (NFMissionsRow[13] = "") { ; This means there was no available cargo/market, so we can skip the analysis.
 				continue
 			}
@@ -1113,7 +1142,8 @@ Goods_RefreshMissions:
 					replace(dep.unitWeight, ',', '.') AS [Weight/u],
 					dest.unitPrice - dep.unitPrice AS [Profit/u],
 					MIN(dest.quantity, dep.quantity) AS [Max Qty],
-					%qGoodsSelectReq% AS [Time Left (hrs)]
+					%qGoodsSelectReq% AS [Time Left (hrs)],
+					dest.unitprice AS [Cost/u]
 				FROM
 					goodsMarket AS dep
 				INNER JOIN
@@ -1136,10 +1166,12 @@ Goods_RefreshMissions:
 			If (NFMissionsGoodsResult.RowCount) {
 				totalProfit := 0
 				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-qMissionCargo
-				Loop % NFMissionsGoodsResult.RowCount {
+				availableCash := PilotCash
+				Loop % NFMissionsGoodsResult.RowCount { ; For each individual viable good...
 					NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
-					maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2]))
+					maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2], availableCash/NFMissionsGoodsRow[6]))
 					totalProfit := totalProfit + (maxQty * NFMissionsGoodsRow[3])
+					availableCash -= maxQty*NFMissionsGoodsRow[6]
 					availablePayload -= maxQty*NFMissionsGoodsRow[2]
 				}
 				NFMissionsRow[10] := totalProfit
@@ -1188,7 +1220,8 @@ Goods_RefreshMissions:
 				a.num_runway_end_vasi AS [VASI/PAPI],
 				a.num_runway_hard AS [Hard Rwys],			
 				a.longest_runway_length AS [Rwy Len],
-				a.has_tower_object AS [Tower]
+				a.has_tower_object AS [Tower],
+				0 AS Hdg
 			FROM (
 				SELECT
 					dest.location AS location,
@@ -1257,7 +1290,8 @@ Goods_RefreshMissions:
 						dep.name AS Good,
 						replace(dep.unitWeight, ',', '.') AS [Weight/u],
 						dest.unitPrice - dep.unitPrice AS [Profit/u],
-						MIN(dest.quantity, dep.quantity) AS [Max Qty]		
+						MIN(dest.quantity, dep.quantity) AS [Max Qty],
+						dest.unitprice AS [Cost/u]
 					FROM
 						goodsMarket AS dep
 					INNER JOIN goodsMarket AS dest 
@@ -1278,15 +1312,18 @@ Goods_RefreshMissions:
 					return
 				}
 				totalProfit := 0
+				availableCash := PilotCash
 				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
 				Loop % TradesGoodsResult.RowCount {
 					TradesGoodsResult.Next(TradesGoodsRow)
-					maxQty := FLOOR(MIN(TradesGoodsRow[4], availablePayload/TradesGoodsRow[2]))
+					maxQty := FLOOR(MIN(TradesGoodsRow[4], availablePayload/TradesGoodsRow[2], availableCash/TradesGoodsRow[5]))
 					totalProfit += maxQty * TradesGoodsRow[3]
+					availableCash -= maxQty*TradesGoodsRow[5]
 					availablePayload := availablePayload - maxQty*TradesGoodsRow[2]
 				}
 				TradesRow[3] := totalProfit
 				TradesRow[4] := ROUND(distanceFromCoord(pilotLonX, pilotLatY, TradesRow[6], TradesRow[7]))
+				TradesRow[17] := ROUND(headingFromCoord(pilotLonX, pilotLatY, TradesRow[6], TradesRow[7]))
 				TradesRow[5] := ROUND(TradesRow[3]/TradesRow[4],0)
 				TradesNextGoodsQuery = 
 				(
@@ -1430,6 +1467,17 @@ Goods_RefreshMarket:
 	GuiControlGet, Settings_GoodsDateFormat
 	GuiControlGet, Goods_AllowOverweight
 	GuiControlGet, Goods_MaxOverweight
+	; Get the user's current money
+	qPilotID := Pilot.id
+	PilotCashQuery = 
+	(
+		SELECT cash FROM career WHERE id = %qPilotID%
+	)
+	If !(PilotCashResult := SQLiteGetTable(DB, PilotCashQuery)) {
+		return
+	}
+	PilotCashResult.GetRow(1, PilotCashRow)
+	PilotCash := PilotCashRow[1]
 	goodsChecked := 0
 	If (Goods_IncludeIllicit) {
 		qIllicit := "!= -1"
@@ -1512,6 +1560,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
+	availableCash := PilotCash
 	availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
@@ -1519,13 +1568,14 @@ Goods_RefreshMarket:
 	OptimalResult.ColumnNames[13] := "Weight"
 	Loop % OptimalResult.RowCount {
 		OptimalResult.Next(OptimalRow)
-		maxQty := FLOOR(MIN(OptimalRow[10], availablePayload/OptimalRow[3]))
+		maxQty := FLOOR(MIN(OptimalRow[10], availablePayload/OptimalRow[3], availableCash/OptimalRow[5]))
 		OptimalRow[10] := maxQty
 		OptimalRow[12] := maxQty * OptimalRow[8]
 		OptimalRow[11] := maxQty * OptimalRow[5]
 		OptimalRow[13] := Round(maxQty * OptimalRow[3],2)
 		totalProfit += OptimalRow[12]
-		availablePayload := availablePayload - maxQty*OptimalRow[3]
+		availableCash -= maxQty*OptimalRow[5]
+		availablePayload -= maxQty*OptimalRow[3]
 	}
 	OptimalResult.Reset()
 	goodsWeight -= availablePayload
@@ -1582,16 +1632,6 @@ Goods_CheckHangar:
 	CheckHangarResult.GetRow(1, CheckHangarRow)
 	If (Plane.id != CheckHangarRow[1] || Plane.location != CheckHangarRow[2] || Plane.fuel != CheckHangarRow[3] || Plane.onboardCargo != CheckHangarRow[4]) {
 		GuiControl, Text, Goods_WarningText, Change detected with chosen plane! Refresh the Hangar.
-	}
-	return
-}
-
-Goods_ManageOptions:
-{
-	Gui, Main:Default
-	GuiControlGet, Goods_ManageOptions
-	If (Goods_ManageOptions) {
-		MsgBox, 64, Auto-Manage Options, When enabled, this feature automatically assumes if the User will be flying, or AI (based on Pilot location).`n`nIt will automatically adjust settings and filters for common optimizations.`n`nUncheck this feature to stop NeoFly Tools from adjusting filters on its own.
 	}
 	return
 }
@@ -1676,13 +1716,13 @@ Summary_Buy:
 		If (A_Index>1) {
 		GoodsSelectQuery := GoodsSelectQuery . "`nUNION ALL`n"
 		}
-		GoodsSelectQueryNext =
+		NextQuery =
 		(
 			SELECT id, %qPlaneID% AS planeid, name, type, unitprice AS buyprice, %qQty% AS quantity, location AS locationbuy, REPLACE(unitweight, ',', '.')*%qQty% AS totalweight, unitweight, 'a' AS expirationdate, ttl
 			FROM goodsMarket
-			WHERE id = %qID%			
+			WHERE id = %qID%
 		)
-		GoodsSelectQuery := GoodsSelectQuery . GoodsSelectQueryNext
+		GoodsSelectQuery := GoodsSelectQuery . NextQuery
 	}
 	If !(GoodsSelectResult := SQLiteGetTable(DB, GoodsSelectQuery)) {
 		return
@@ -1708,13 +1748,6 @@ Summary_Buy:
 	IfMsgBox Yes
 	{
 		qPilotID := Pilot.id
-		; Open DB with write privileges
-		DB.CloseDB()
-		GuiControlGet, Settings_DBPath
-		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
-			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-			return
-		}
 		; Commit each good
 		Loop % GoodsSelectResult.RowCount {
 			GoodsSelectResult.Next(GoodsSelectRow)
@@ -1728,44 +1761,27 @@ Summary_Buy:
 			lvTotalWeight := GoodsSelectRow[8]
 			lvUnitWeight := GoodsSelectRow[9]
 			lvExpirationDate := GoodsSelectRow[10]
-			lvCargoID := "(SELECT IFNULL(id,0) FROM cargo ORDER BY id DESC LIMIT 1)+1"
-			lvLoanID := "(SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1"
 			FormatTime, lvStartDate, , %timestampFormat24Force%
 			lvDuration := FLOOR(lineCost/10000)
 			Gui, Main:Default
 			CargoBuyQuery =
 			(
 				INSERT INTO cargo (id, planeid, name, type, buyprice, quantity, locationbuy, totalweight, unitweight, expirationdate)
-				VALUES (%lvCargoID%, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), '%lvUnitWeight%', '%lvExpirationDate%');
+				VALUES ((SELECT IFNULL(id,0) FROM cargo ORDER BY id DESC LIMIT 1)+1, %lvPlaneID%, '%lvName%', %lvType%, %lvBuyPrice%, %lvQuantity%, '%lvLocationBuy%', CAST(%lvTotalWeight% AS INT), '%lvUnitWeight%', '%lvExpirationDate%');
 				
 				UPDATE goodsMarket SET quantity = quantity - %lvQuantity% WHERE id = %lvGMID%;			
 			)
-			;UPDATE career SET cash = cash - %lineCost% WHERE id = %qPilotID%;
-			If (!DB.Exec(CargoBuyQuery)) {
-				MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
-				IfMsgBox Yes
-				{
-					clipboard := CargoBuyQuery
-				}
+			If !(SQLiteExecute(DB, CargoBuyQuery)) {
+				return
 			}
 		}
 		; Temporary work-around: make a loan for the same amount of the goods we basically just cheated in.
 		LoanOffsetQuery = 
 		(
 			INSERT INTO loans (id, ownerId, amount, interestRate, startDate, duration, statusId, billingInterval)
-			VALUES (%lvLoanID%, %qPilotID%, %totalCost%, 0, '%lvStartDate%', %lvDuration%, 1, 30)
+			VALUES ((SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1, %qPilotID%, %totalCost%, 0, '%lvStartDate%', %lvDuration%, 1, 30)
 		)
-		If (!DB.Exec(LoanOffsetQuery)) {
-			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
-			IfMsgBox Yes
-			{
-				clipboard := LoanOffsetQuery
-			}
-		}
-		; Close the DB and re-open read-only.
-		DB.CloseDB()
-		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
-			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+		If !(SQLiteExecute(DB, LoanOffsetQuery)) {
 			return
 		}
 		Gui, Summary:Default
@@ -1801,7 +1817,8 @@ Auto_List:
 		SELECT DISTINCT 
 			m.arrival AS ICAO, 
 			m.dist AS Distance,
-			' ' AS ' '
+			m.missionTypeS AS [Type],
+			m.missionHeading AS [Hdg from %Auto_CenterICAO%]			
 		FROM
 			missions AS m
 		INNER JOIN
@@ -1814,7 +1831,7 @@ Auto_List:
 			AND %qExpiration% > DATETIME('now', 'localtime')
 			AND m.arrival NOT IN (
 				SELECT DISTINCT gm.location FROM goodsMarket AS gm WHERE %qRefreshDate% > DATETIME('now', '-%marketRefreshHours% hours', 'localtime') )
-		ORDER BY ICAO
+		ORDER BY Distance DESC
 	)
 	If !(AutoListResult := SQLiteGetTable(DB, AutoListQuery)) {
 		return
@@ -2386,33 +2403,7 @@ Generator_PreviewLVClick:
 				%qVar35% AS missionHeading
 		)
 		
-		DB.CloseDB()
-		GuiControlGet, Settings_DBPath
-		If (!DB.OpenDB(Settings_DBPath, "W", false)) {
-			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-			return
-		}
-		If (!DB.Exec(GeneratorCommitQuery)) {
-			MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
-			IfMsgBox Yes
-			{
-				clipboard := GeneratorCommitQuery
-			}
-			return
-		}
-		LastIDQuery =
-		(
-			SELECT id FROM missions ORDER BY id DESC LIMIT 1
-		)
-		If !(LastIDResult := SQLiteGetTable(DB, LastIDQuery)) {
-			return
-		}
-		LastIDResult.GetRow(1,LastIDRow)
-		insertedId := LastIDRow[1]
-
-		DB.CloseDB()
-		If (!DB.OpenDB(Settings_DBPath, "R", false)) {
-			MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+		If !(SQLiteExecute(DB, GeneratorCommitQuery)) {
 			return
 		}
 		GuiControlGet, Generator_AddedIDs
@@ -2598,7 +2589,7 @@ Company_CleanLoans:
 {
 	
 	Gui, Main:Default
-	MsgBox, 36, Confirm Loan Wipe, Are you sure you want to do this?`n`nThis will wipe the Loans and LoanPayments tables of all records of any loans which have a "paid" status for this pilot.`n`nThis information will be non-recoverable.`n`nRecommend backing up your database first.
+	MsgBox, 36, Confirm Loan Clean Up, This will wipe the Loans and LoanPayments tables of all records of any loans which have a "paid" status for this pilot.`n`nContinue with Loan Clean Up?
 	IfMsgBox No
 	{
 		return
@@ -2610,33 +2601,70 @@ Company_CleanLoans:
 		DELETE FROM loanpayments WHERE loanId IN (
 			SELECT id FROM loans WHERE ownerID = %qOwnerID% AND statusID = 2 );
 			
-		DELETE FROM loans WHERE ownerID = %qOwnerID% AND statusID = 2;
+		DELETE FROM loans WHERE ownerID = %qOwnerID% AND (statusID = 2 OR amount=0);
 	)
-	DB.CloseDB()
-	GuiControlGet, Settings_DBPath
-	If (!DB.OpenDB(Settings_DBPath, "W", false)) {
-		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
-		return
-	}
-	If (!DB.Exec(CleanLoansQuery)) {
-		MsgBox, 20, SQLite Error: SQLiteGetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode . "`n`nEnsure the database is connected in the settings tab, and that the SQL query is valid`n`nDo you want to copy the query to the clipboard?"
-		IfMsgBox Yes
-		{
-			clipboard := CleanLoansQuery
-		}
-		return
-	}
-	
-	; Re-open read only
-	DB.CloseDB()
-	If (!DB.OpenDB(Settings_DBPath, "R", false)) {
-		MsgBox, 16, SQLite Error, % "Could not connect to database.`n`nMsg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+	If !(SQLiteExecute(DB, CleanLoansQuery)) { 
 		return
 	}
 	SB_SetText("Loans cleaned")
 	return
 }
 
+Company_ConsolidateLoans:
+{
+	Gui, Main:Default
+	qPilotID := Pilot.id
+	LoansAmountQuery =
+	(
+		SELECT 
+			l.id AS [Loan ID],
+			l.amount - (SELECT IFNULL(SUM(p.amount),0) FROM loanpayments AS p WHERE p.loanId = l.id) AS [Balance Oweing],
+			l.interestRate AS [Interest Rate],
+			l.amount AS [Original Loan],
+			(SELECT SUM(IFNULL(p.amount,0)) FROM loanpayments AS p WHERE p.loanId = l.id) AS [Payments Made]
+		FROM loans AS l
+		WHERE
+			l.ownerId = %qPilotID%
+			AND l.statusId = 1
+	)
+	If !(LoansAmountResult := SQLiteGetTable(DB, LoansAmountQuery)) {
+		return
+	}
+	If !(LoansAmountResult.RowCount) {
+		MsgBox No loans found to consolidate.
+		return
+	}
+	loanCount := 0
+	totalLoanAmount := 0
+	totalLoanInterest := 0
+	Loop % LoansAmountResult.RowCount {
+		LoansAmountResult.Next(LoansAmountRow)
+		totalLoanAmount := totalLoanAmount + LoansAmountRow[2]
+		totalLoanInterest := totalLoanInterest + LoansAmountRow[3]
+		loanCount++
+	}
+	totalLoanInterest := ROUND(CEIL(100.0*totalLoanInterest/totalLoanAmount)/100,2)
+	MsgBox, 36, Confirm Loan Consolidation, % "A single " . PrettyNumbers(totalLoanAmount, true) . " loan with a weighted average interest rate of " . ROUND(totalLoanInterest*100) . "% will be made to replace " . loanCount . " individual loans. This is not easily reversible.`n`nContinue with loan consolidation?"
+	IfMsgBox Yes
+	{
+		loanDuration := FLOOR(totalLoanAmount/1000)
+		loanStartDate := TimestampFormat(A_Now, true)
+		LoansConsolidationQuery = 
+		(
+			DELETE FROM loanpayments WHERE loanId IN (
+				SELECT id FROM loans WHERE ownerID = %qPilotID% AND statusId = 1 );
+				
+			DELETE FROM loans WHERE ownerID = %qPilotID% AND statusId = 1;
+			
+			INSERT INTO loans (id, ownerId, amount, interestRate, startDate, duration, statusId, billingInterval)
+			VALUES ((SELECT IFNULL(id,0) FROM loans ORDER BY id DESC LIMIT 1)+1, %qPilotID%, %totalLoanAmount%, %totalLoanInterest%, '%loanStartDate%', %loanDuration%, 1, 30)
+		)
+		If !(SQLiteExecute(DB, LoansConsolidationQuery)) {
+			return
+		}
+	}	
+	return
+}
 Company_Finances:
 {
 	SB_SetText("Displaying pilot financials...")
@@ -2753,7 +2781,7 @@ Company_CrewRefresh:
 		return
 	}
 	LV_ShowTable(AipilotsListResult, "Company_CrewLV")
-	SB_SetText("AI crew refreshed...")
+	SB_SetText("AI crew refreshed")
 	return
 }
 
@@ -2781,6 +2809,7 @@ Company_CrewLVClick:
 		MsgBox, 36, Confirm Hiring, % "Cost (in the form of a loan) will be " . PrettyNumbers(qCost,true) . " for " . Company_CrewDuration . " days of service, payable up-front.`n`nHire " . lvName . " from now until " . qDateEnd "?"
 		IfMsgBox Yes
 		{
+			SB_SetText("Hiring crew member...")
 			CrewHireQuery =
 			(
 				UPDATE aipilots SET status = 1
@@ -2820,6 +2849,7 @@ Company_CrewLVClick:
 			GoSub Company_CrewRefresh
 		}
 	}
+	SB_SetText("Hiring member hired")
 	return
 }
 
@@ -2830,21 +2860,47 @@ Flight_CalculateDescent:
 	GuiControlGet, Flight_Speed
 	GuiControlGet, Flight_GlideSlope
 	GuiControlGet, Flight_CurrentAltitude
-	AirportAltitudeQuery = 
+	AirportQuery = 
 	(
-		SELECT altitude FROM airport WHERE ident = '%Flight_AirportICAO%' LIMIT 1
+		SELECT altitude, tower_frequency, unicom_frequency, atis_frequency, asos_frequency, awos_frequency FROM airport WHERE ident = '%Flight_AirportICAO%' LIMIT 1
 	)
-	If !(AirportAltitudeResult := SQLiteGetTable(DB, AirportAltitudeQuery)) {
+	If !(AirportResult := SQLiteGetTable(DB, AirportQuery)) {
 		return
 	}
-	If !(AirportAltitudeResult.RowCount) {
+	If !(AirportResult.RowCount) {
 		MsgBox, No airport found for that ICAO.
 		return
 	}
-	AirportAltitudeResult.GetRow(1, AirportAltitudeRow)
-	GuiControl, Text, Flight_AirportAlt, % AirportAltitudeRow[1]
-	GuiControl, Text, Flight_DescentDistance, % ROUND((Flight_CurrentAltitude-AirportAltitudeRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
+	AirportResult.GetRow(1, AirportRow)
+	; Display tower/unicom freq
+	If (AirportRow[2]) {
+		GuiControl, Text, Flight_AirportTowerFreq, % ROUND(AirportRow[2]/1000,3) . " (Tower)"
+	} Else If (AirportRow[3]) {
+		GuiControl, Text, Flight_AirportTowerFreq, % ROUND(AirportRow[3]/1000,3) . " (Unicom)"
+	} else {
+		GuiControl, Text, Flight_AirportTowerFreq, % "Not in DB"
+	}
+	; Display weather frequency
+	If (AirportRow[4]) {
+		GuiControl, Text, Flight_AirportWeatherFreq, % ROUND(AirportRow[4]/1000,3) . " (ATIS)"
+	} else if (AirportRow[5]) {
+		GuiControl, Text, Flight_AirportWeatherFreq, % ROUND(AirportRow[5]/1000,3) . " (ASOS)"
+	} else if (AirportRow[6]) {
+		GuiControl, Text, Flight_AirportWeatherFreq, % ROUND(AirportRow[6]/1000,3) . " (AWOS)"
+	} else {
+		GuiControl, Text, Flight_AirportWeatherFreq, % "Not in DB"
+	}
+	GuiControl, Text, Flight_AirportAlt, % AirportRow[1]
+	GuiControl, Text, Flight_DescentDistance, % ROUND((Flight_CurrentAltitude-AirportRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
 	GuiControl, Text, Flight_DescentRate, % CEIL(100.0*Flight_Speed/60.0*Flight_GlideSlope/50)*50
+	return
+}
+
+Flight_Skyvector:
+{
+	Gui, Main:Default
+	GuiControlGet, Flight_AirportICAO
+	Run https://skyvector.com/airport/%Flight_AirportICAO%
 	return
 }
 
@@ -2876,6 +2932,13 @@ Flight_StopwatchTick:
 	EnvAdd, timeElapsed, %secElapsed%, Seconds
 	FormatTime, formattedTime, %timeElapsed%, H:mm:ss
 	GuiControl, Text, Flight_StopwatchDisplay, % formattedTime
+	return
+}
+
+; == Debug Tab Subroutines
+Debug_Test:
+{
+	MsgBox % DB._Path
 	return
 }
 
@@ -3151,7 +3214,7 @@ TimestampFormat(timestampToFormat, force24 = false) {
 	RegRead, dateFormat, HKEY_CURRENT_USER\Control Panel\International, sShortDate
 	RegRead, timeFormat, HKEY_CURRENT_USER\Control Panel\International, sTimeFormat
 	If (force24) {
-		timestampFormat24Force := dateFormat . " " . "HH:mm:ss"
+		timestampFormat := dateFormat . " " . "HH:mm:ss"
 	} else {
 		timestampFormat := dateFormat . " " . timeFormat
 	}
