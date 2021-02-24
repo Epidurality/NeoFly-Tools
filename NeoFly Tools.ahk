@@ -361,11 +361,15 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, xm+10 y70, Discord Webhook URL:
 	Gui, Add, Edit, x+10 w780 vMonitor_URL, % discordWebhookURL
 	
+	Gui, Add, Text, xm+20 y+20, Refresh Interval (s):
+	Gui, Add, Edit, x+5 w50 vMonitor_RefreshInterval, 60
+	Gui, Add, Radio, x+200 vMonitor_UseWebhook Group, Notify via Webhook
+	Gui, Add, Radio, x+40 Checked, Notify via Beeps
+	Gui, Add, Text, x+40, Beep Count:
+	Gui, Add, Edit, x+5 w40 vMonitor_BeepCount, 3
 	Gui, Add, Button, xm+10 y+20 vMonitor_Enable gMonitor_Enable, Enable
 	Gui, Add, Button, x+30 vMonitor_Disable gMonitor_Disable Disabled, Disable
-	Gui, Add, Checkbox, x+40 vMonitor_OfflineMode gMonitor_Disable, Use Offline Mode (uses ETA instead of checking the Hangar - use only if NeoFly is closed)
-	Gui, Add, Text, x+30, Refresh Interval (s):
-	Gui, Add, Edit, x+5 w50 vMonitor_RefreshInterval, 60
+	Gui, Add, Checkbox, x+40 vMonitor_OfflineMode gMonitor_Disable, Use Offline Mode (uses ETA instead of checking the Hangar - use only if NeoFly is closed. Not very accurate.)
 	
 	Gui, Add, Text, xm+10 y+20, Hangar:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HangarLastChecked, ---
@@ -2421,6 +2425,8 @@ Monitor_Check:
 	SB_SetText("Checking Hangar Monitor...")
 	GuiControlGet, Monitor_URL
 	GuiControlGet, Settings_MissionDateFormat
+	GuiControlGet, Monitor_UseWebhook
+	GuiControlGet, Monitor_BeepCount
 	If !(Monitor_OfflineMode) {
 		; Get Available hangar planes
 		qPilotID := Pilot.id
@@ -2461,15 +2467,20 @@ Monitor_Check:
 					}
 				}
 				If !(planeIsOld) { ; Plane wasn't found in the table, must be new.
-					postMessage := MonitorHangarRow[2] . " " . MonitorHangarRow[5] " (#" . MonitorHangarRow[1] . ") is now " . MonitorHangarRow[3] . " at " . MonitorHangarRow[4]
-					postdata =
-					(
-					{
-						"username": "NeoFly Tools",
-						"content": "%postMessage%"
+					If (Monitor_UseWebhook) { ; 
+						postMessage := MonitorHangarRow[2] . " " . MonitorHangarRow[5] " (#" . MonitorHangarRow[1] . ") is now " . MonitorHangarRow[3] . " at " . MonitorHangarRow[4]
+						postdata =
+						(
+						{
+							"username": "NeoFly Tools",
+							"content": "%postMessage%"
+						}
+						)
+						Webhook_PostSend(Monitor_URL, postdata)
+					} else {
+						Monitor_BeepsRemaining := Monitor_BeepCount
+						SetTimer, Monitor_Beep, 500
 					}
-					)
-					Webhook_PostSend(Monitor_URL, postdata)
 				}
 			}
 		MonitorHangarResult.Reset()
@@ -2581,6 +2592,17 @@ Monitor_Disable:
 	GuiControl, Disable, Monitor_HangarLV
 	GuiControl, Disable, Monitor_HiredLV
 	SB_SetText("Hangar monitor disabled")
+	return
+}
+
+Monitor_Beep:
+{
+	If (Monitor_BeepsRemaining>0) {
+		SoundBeep
+		Monitor_BeepsRemaining--
+	} else {
+		SetTimer, Monitor_Beep, Off
+	}
 	return
 }
 
