@@ -30,6 +30,7 @@ global DB := new SQLiteDB ; SQLite database connection object
 global marketRefreshHours := 24 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
 global fuelPercentForAircraftMarketPayload := 0.40 ; Percent (as decimal) of fuel to be used in the Effective Payload calculation, only in the Aircraft Market tab results.
 global dateFormats := "No Reformatting (Fastest)|yyyy/mm/dd|dd/mm/yyyy|mm/dd/yyyy|COULD NOT DETECT"
+global scratchPadPath := A_ScriptDir . "\ScratchPad.txt"
 
 ; INI vars declaration
 global defaultDBPath
@@ -415,7 +416,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+40 gFlight_Skyvector, SkyVector Link
 	Gui, Font
 	
-	Gui, Add, Button, xs y+10 gFlight_CalculateDescent, Calculate Descent
+	Gui, Add, Button, xs y+20 gFlight_CalculateDescent, Calculate Descent
 	Gui, Add, Text, x+40, Start at (nm):
 	Gui, Add, Text, x+5 w50 vFlight_DescentDistance, ---
 	Gui, Add, Text, x+20, Descend at (fpm):
@@ -433,6 +434,15 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Font
 	Gui, Add, Button, x+10 w60 vFlight_StopwatchStart gFlight_StopwatchStart, Start
 	Gui, Add, Button, x+20 w60 vFlight_StopwatchStop gFlight_StopwatchStop Disabled, Stop
+	
+	Gui, Add, GroupBox, xm+10 y+50 w915 h395 Section, Scratch Pad
+	Gui, Font, s15
+	Gui, Add, Edit, xp+10 yp+20 w890 h300 vFlight_ScratchPad
+	Gui, Font
+	Gui, Add, Button, xs+100 y+10 w150 gFlight_SaveScratchPad, Save to File
+	Gui, Add, Button, x+400 w150 gFlight_LoadScratchPad, Load from File
+	Gui, Add, Text, xs+20 y+20, File path:	%scratchPadPath%
+	
 }
 
 ; Gui Debug tab
@@ -2957,6 +2967,36 @@ Flight_StopwatchTick:
 	return
 }
 
+Flight_SaveScratchPad:
+{
+	MsgBox, 36, Confirm Save, This will overwrite previous information in the ScratchPad file. Are you sure?
+	IfMsgBox Yes 
+	{
+		SB_SetText("Saving scratch pad...")
+		GuiControlGet, Flight_ScratchPad
+		FileDelete, %scratchPadPath%
+		FileAppend, % Flight_ScratchPad, %scratchPadPath%
+		SB_SetText("Scratch pad saved")
+	}
+	return
+}
+
+Flight_LoadScratchPad:
+{
+	MsgBox, 36, Confirm Load, This will erase the text in your scratch pad. Are you sure?
+	IfMsgBox Yes 
+	{
+		SB_SetText("Loading scratch pad...")
+		If !FileExist(scratchPadPath) {
+			MsgBox Could not find %scratchPadPath% to load.
+		}
+		FileRead, loadedText, %scratchPadPath%
+		GuiControl, Text, Flight_ScratchPad, % loadedText
+		SB_SetText("Scratch pad loaded")
+	}
+	return
+}
+
 ; == Debug Tab Subroutines
 Debug_Test:
 {
@@ -3163,6 +3203,7 @@ LV_ShowTable(Table, LV, drawImmediate := TRUE) {
 		{
 			LV_ModifyCol(A_Index, "Float")
 		}
+		LV_ModifyCol(A_Index, "Left")
 	}
 	If (drawImmediate) {
 		GuiControl, +ReDraw, %LV%
