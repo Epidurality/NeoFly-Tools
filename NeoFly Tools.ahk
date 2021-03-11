@@ -27,7 +27,7 @@ iconPath := A_ScriptDir . "/resources/default.ico"
 global Pilot := {id: -1, weight: 170} ; Stores information about the current pilot
 global Plane := {id: -1, name: "unknown", fuel: -1, maxFuel: -1, payload: -1, pax: -1, cruiseSpeed: -1, location: "unknown", onboardCargo: 0} ; Stores information about the selected Hangar plane
 global DB := new SQLiteDB ; SQLite database connection object
-global marketRefreshHours := 24 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
+global marketRefreshHours := 72 ; How often (in hours) the NeoFly system will force a refresh of the market. This is used to ignore markets which are too old.
 global fuelPercentForAircraftMarketPayload := 0.40 ; Percent (as decimal) of fuel to be used in the Effective Payload calculation, only in the Aircraft Market tab results.
 global dateFormats := "No Reformatting (Fastest)|yyyy/mm/dd|dd/mm/yyyy|mm/dd/yyyy|COULD NOT DETECT"
 global scratchPadPath := A_ScriptDir . "\ScratchPad.txt"
@@ -1180,7 +1180,7 @@ Goods_RefreshMissions:
 			If (NFMissionsGoodsResult.RowCount) {
 				totalProfit := 0
 				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-qMissionCargo
-				availableCash := PilotCash
+				availableCash := MAX(PilotCash,0) ; Set to 0 to avoid math errors if PilotCash is negative for whatever reason
 				Loop % NFMissionsGoodsResult.RowCount { ; For each individual viable good...
 					NFMissionsGoodsResult.Next(NFMissionsGoodsRow)
 					maxQty := FLOOR(MIN(NFMissionsGoodsRow[4], availablePayload/NFMissionsGoodsRow[2], availableCash/NFMissionsGoodsRow[6]))
@@ -1326,7 +1326,7 @@ Goods_RefreshMissions:
 					return
 				}
 				totalProfit := 0
-				availableCash := PilotCash
+				availableCash := MAX(PilotCash,0) ; Set to 0 to avoid math errors if PilotCash is negative for whatever reason
 				availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo
 				Loop % TradesGoodsResult.RowCount {
 					TradesGoodsResult.Next(TradesGoodsRow)
@@ -1574,7 +1574,7 @@ Goods_RefreshMarket:
 	; Optimize these trades
 	simPayload := Plane.payload - Plane.fuel
 	totalProfit := 0
-	availableCash := PilotCash
+	availableCash := MAX(PilotCash,0) ; Set to 0 to avoid math errors if PilotCash is negative for whatever reason
 	availablePayload := Plane.payload+MIN(Plane.fuel, Goods_MaxOverweight) - Plane.fuel-Pilot.weight-Plane.onboardCargo-Goods_MissionWeight
 	goodsWeight := availablePayload
 	OptimalResult.ColumnNames[10] := "Buy Qty"
