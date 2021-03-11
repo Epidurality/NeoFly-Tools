@@ -176,6 +176,8 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 
 ## Change Log:
 
+### v0.8.0
+
 ### v0.7.0
 - Added a Flight Tools tab for common flight calculations.
 - Added a Descent Calculator to Flight Tools

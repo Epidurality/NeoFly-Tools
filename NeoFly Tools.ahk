@@ -5,7 +5,7 @@
 ; Tested on:        Windows 10 64-bit
 ; Author:           Epidurality
 
-versionNumber := "0.7.0"
+versionNumber := "0.8.0"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
 
 ; AHK Settings
