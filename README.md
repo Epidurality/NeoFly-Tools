@@ -18,7 +18,7 @@ I've taken the time to document the procedures and nuances of the program, pleas
     1. If using the *Executable / Binary* version, simply run the *NeoFly Tools.exe*.
 	1. If you prefer using the Script version, download the *Source* folder instead and run the *NeoFly Tools.ahk* script. Requires AutoHotkey (https://www.autohotkey.com/).
 1. Configure your defaults and certain settings using the *NeoFly Tools.ini* file.
-1. Requires NeoFly 2.12 (Tail Number update) or later.
+1. Requires NeoFly 2.13 or later.
 
 ### Connecting to the Database:
 1. Go to the Settings tab
@@ -43,8 +43,8 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 1. In the goods optimizer, double-click the plane you want to use from the Hangar view. This will auto-populate your Fuel and Departure, as well as allow the Optimizer to establish your available payload.
 1. The *NeoFly Missions* view and *Trade / Transit Missions* view will display all possibilities for trading given your current Departure ICAO.
 	1. Note: The NeoFly missions will be filtered based on the Range, Payload, and Pax capabilities of your airplane, but are NOT filtered for your pilot rank.
-1. The Trade Profit takes into account your on-board fuel, payload capacity, etc to determine how many goods you're able to bring with you on the flight.
-    1. The Optimizer does NOT take range into account for analyzing your plane's viability for the mission. Make sure you have enough fuel to go the distance!
+1. The Trade Profit takes into account your on-board fuel, payload capacity, your Pilot's cash, etc to determine how many goods you're able to bring with you on the flight.
+    1. The Optimizer does NOT take range or fuel into account for analyzing your plane's viability for the mission. Make sure you have enough fuel to go the distance!
 	1. If you make changes to your fuel levels in NeoFly, refresh the Hangar!
 	1. If you select *Allow Overweight*, the Optimizer will take advantage of the fact that NeoFly does not subtract the Fuel weight from the Max Payload of Planes. You can effectively overweight any Plane by up to the current fuel weight.
 	    1. Script will use whichever is lower: the maximum weight allowed by NeoFly to start the mission, or the custom overweight amount you enter in the field. All results should still be viable flights in NeoFly, even if MSFS shows you're overloaded.
@@ -55,6 +55,7 @@ This tool is to help optimize your trading in NeoFly. It analyzes your Plane's w
 1. *Buy it For Me* function is available in the Summary window. Pressing that button will add ALL cargo shown to your indicated aircraft, **and create a loan in the amount shown**.
     1. Note: The NeoFly GUI will not update the market, your plane's cargo, or the loans until you refresh the market / the loans.
 	1. **Backup your database before the first few times you use this feature.**
+	1. If you use the *Buy it For Me* function, note that your cash will not be affected until you pay off the loan(s), and so trade searches will continue to use the cash amount NeoFly shows as available.
 ###### NOTE: Some aircraft in the NeoFly database do not match the simulator's values. Either edit the database (see the NeoFly documents/discord for help on this), or manually adjust the values to suit. Without matching values, the percentages shown for Payload and Fuel will not be correct.
 
 ### Auto-Market Search:
@@ -127,6 +128,17 @@ Collection of scripts to augment the company management in NeoFly.
     1. Removes records of loans that have already been paid.
 1. Finance Viewer
 	1. Lists and summarizes your finances based on a given range.
+1. Advanced crew management
+	1. Hire crew members *for multiple or portions of days*. 
+	1. Hit refresh to populate a list of crew members available for hire.
+	1. Enter any value from 0.0001 to 365 for Duration (there's actally no practical limit to hire time, just don't go too high or too low to avoid possible code errors with large numbers).
+	1. Confirmation box will explain the cost and duration of the contract for this crew member.
+	1. A loan will be created in the amount shown when confirmed.
+
+### Flight Tools:
+Simple flight tools for use in MSFS.
+1. Descent Calculator
+    1. Calculates your descent profile. Fairly self-explanatory.
 
 ### Close/Exit:
 1. Either right-click the script's icon in your taskbar and click "Exit", or simply close the GUI window via the normal Close "X" button.
@@ -145,14 +157,15 @@ Collection of scripts to augment the company management in NeoFly.
     - Auto-Timestamp chooser basically doesn't work with brand-new databases, since the Markets are not populated yet so there are no dates to check.
 - Don't use non-alphanumeric characters in text fields if you can help it. Particularly double-quotes, single quotes, percent-signs (%), etc as the SQL queries are not being sanitized. Especially on the Mission Generator this will cause the SQL query to fail. This might not get fixed as it would require a significant re-write of the SQL handling.
 - Can't make numbers prettier in ListViews or else they become unsortable.
+- Hired pilots have different weights. Optimized assumes 170lbs, as it doesn't know which hired pilot you're using. This MAY lead to missions where you'd maxed out the payload of your plane not being flyable by heavier pilots. I've not run into this issue, it's possible NeoFly doesn't consider the AI weights properly, but it's possible.
 
 ## New Issues:
 Please use the GitHub "Issues" feature to raise any bugs or problems you've come across.
 
 ## Planned Updates:
 - Soon:
-	- Add mission info to Auto-Market to allow sorting by specific types of destination missions.
-	- Add heading to Trade Mission routes.
+    - Allow lowercase ICAOs in fields for mission generator - check other fields for functionality.
+
 - Not as soon:
     - Randomize mission generation further.
     - Add new mission types: Airline, Humanitarian, SAR, Intercept
@@ -162,6 +175,29 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
 
 ## Change Log:
+
+### v0.7.0
+- Added a Flight Tools tab for common flight calculations.
+- Added a Descent Calculator to Flight Tools
+- Added stopwatch function
+- Added always-on-top function
+- Added advanced crew hiring options
+- Changed Hangar to be sorted by ID (to match default sort of NeoFly, keeps things 'in order')
+- Added more fields to the Auto-Market tab so that you can pseudo-filter which Missions will end up being viable trade routes.
+- Added Heading field to the Trade Missions view of Optimizer
+- Cleaned up the code a little
+- Fixed auto-buy bug when many goods were being purchased
+- Removed MsgBox from Auto-Manage Options
+- Added Tower/Unicom and Weather frequencies to the Flight Tools
+- Added dynamic link to SkyVector in Flight Tools
+- Added Loan Consolidation to Company Manager.
+- Added removal of amount=0 loans to Loan Clean Up (since NF can't pay off loans with zero amount)
+- Fixed bug where "income/nm" was not being calculated if trades were not viable.
+- Added check for player's cash to see what the best trades are within the budget.
+- Added "Notify via Beeps" mode to Hangar Monitor. Beeps your PC instead of sending a webhook.
+- Added a scratch pad (with save/load feature) to Flight Tools.
+- Fixed a bug if the Pilot had negative money.
+- Changed from 24-hour to 72-hour Market refreshes.
 
 ### v0.6.0
 - Added ability to Auto-Buy goods from Optimizer Summary.
