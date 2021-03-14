@@ -164,7 +164,6 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 
 ## Planned Updates:
 - Soon:
-    - Allow lowercase ICAOs in fields for mission generator - check other fields for functionality.
 
 - Not as soon:
     - Randomize mission generation further.
@@ -177,6 +176,11 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 ## Change Log:
 
 ### v0.8.0
+- Fixed bug with Disconnect button calling backup.
+- Addressed situation where if CurrentPilot.PilotID from database was invalid, most tools wouldn't work properly.
+- Added handling of lowercase ICAOs to most places. DID NOT FULLY TEST.
+- Removed default ICAO for some fields. Made some fields insert an ICAO based on actions from other parts of the tool.
+- Fixed bug in with View Finances button.
 
 ### v0.7.0
 - Added a Flight Tools tab for common flight calculations.
