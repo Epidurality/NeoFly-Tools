@@ -216,9 +216,13 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 {
 	Gui, Tab, Auto-Market
 	Gui, Add, Text, xm+10 y70, Center ICAO:
-	Gui, Add, Edit, x+10 w50 vAuto_CenterICAO, KJFK
+	Gui, Add, Edit, x+10 w50 vAuto_CenterICAO,
+	Gui, Add, Text, x+30, Min. Distance
+	Gui, Add, Edit, x+10 w75 vAuto_MinDistance, 0
 	Gui, Add, Text, x+30, Max. Distance
-	Gui, Add, Edit, x+10 w75 vAuto_MaxDistance, 100
+	Gui, Add, Edit, x+10 w75 vAuto_MaxDistance, 50
+	Gui, Add, DropDownList, x+30 w175 gAuto_DistanceDropDown vAuto_DistanceDropDown AltSubmit, Bush: 0 to 50||Small Trip: 50 to 300|Short haul: 300 to 1000|Medium haul: 1000 to 3000|Long Haul: >3000|All
+	Gui, Add, DropDownList, x+20 w100 vAuto_MissionType, Any||Pax|Cargo|Mail|Sensitive cargo|VIP pax|Secret pax|Airline
 	
 	Gui, Add, Button, xm+10 y+20 gAuto_List, List ICAOs
 	Gui, Add, Text, x+40, 
@@ -235,7 +239,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Button, x+30 gAuto_AutoEntry, Auto Entry
 	Gui, Add, Checkbox, x+30 vAuto_IgnoreWindow, Ignore Active Window Check`n(only use if script is not properly detecting that NeoFly is the active window)
 	Gui, Add, Text, x+10, Delay in Auto Entry (ms):
-	Gui, Add, Edit, x+5 vAuto_Delay, 1500
+	Gui, Add, Edit, x+5 vAuto_Delay, 500
 	
 	Gui, Font, Bold
 	Gui, Add, Text, xm+10 y+30, Please read the included Readme for instructions on using this part of the tool.
@@ -405,7 +409,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, GroupBox, xm+10 y70 w915 h100, Descent Calculator
 	
 	Gui, Add, Text, xp+20 yp+20 Section, Airport ICAO:
-	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO, KJFK
+	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO,
 	Gui, Add, Text, x+20, Altitude (ft):
 	Gui, Add, Edit, x+5 w50 vFlight_CurrentAltitude, 10500	
 	Gui, Add, Text, x+20, Ground Speed (kts):
@@ -578,15 +582,22 @@ Settings_Connect:
 	If (!PilotResult.RowCount) {
 		GuiControl, , Settings_Pilot, % "Valid pilots were not able to be loaded from database."
 	} Else {
+		foundCurrentPilot := FALSE
 		Loop % PilotResult.RowCount {
 			PilotResult.Next(PilotRow)
 			If (PilotRow[2] == PilotRow[3]) {
 				Pilot.id := PilotRow[2]
 				GuiControl, , Settings_Pilot, % "ID: " . PilotRow[2] . "`t Callsign: " . PilotRow[1]
 				PilotRow[3] := "<<<"
+				foundCurrentPilot := TRUE
 			} Else {
 				PilotRow[3] := " "
 			}
+		}
+		If !(foundCurrentPilot) { ; Handles the rare case where, due to names/deleting pilots, the CurrentPilot table has the wrong ID values.
+			MsgBox Current pilot was not able to be attained from database. Possible issue in the CurrentPilot table. Random pilot chosen.
+			GuiControl, , Settings_Pilot, % "ID: " . PilotRow[2] . "`t Callsign: " . PilotRow[1]
+			Pilot.id := PilotRow[2]
 		}
 		PilotResult.Reset()
 		LV_ShowTable(PilotResult, "Settings_PilotLV")
@@ -623,6 +634,7 @@ Settings_Disconnect:
 	LV_Clear("Goods_TradesLV")
 	LV_Clear("Settings_TimestampLV")
 	SB_SetText("Disconnected from the database")
+	return
 }
 
 Settings_Backup:
@@ -1068,7 +1080,7 @@ Goods_RefreshMissions:
 		INNER JOIN airport AS a
 		ON a.ident=m.arrival
 		WHERE
-			departure='%Goods_DepartureICAO%'
+			departure = UPPER('%Goods_DepartureICAO%')
 			AND m.dist <= %Goods_MaxRange%
 			AND a.num_runway_hard >= %Goods_ArrivalHard%
 			AND a.num_runway_light >= %Goods_ArrivalLights%
@@ -1163,7 +1175,7 @@ Goods_RefreshMissions:
 				INNER JOIN
 					goodsMarket AS dest ON dep.name=dest.name
 				WHERE
-					dep.location='%qDeparture%'
+					dep.location=UPPER('%qDeparture%')
 					AND dep.type %qIllicit%
 					AND dep.type %qNormal%
 					AND dep.type %qPerishable%
@@ -1193,7 +1205,7 @@ Goods_RefreshMissions:
 				NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0)
 				NFMissionsNextGoodsQuery = 
 				(
-					SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+					SELECT name FROM goodsMarket WHERE location=UPPER('%qArrival%') AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
 				)
 				If !(NFMissionsNextGoodsResult := SQLiteGetTable(DB, NFMissionsNextGoodsQuery)) {
 					return
@@ -1247,7 +1259,7 @@ Goods_RefreshMissions:
 				INNER JOIN
 					airport AS a ON dest.location=a.ident
 				WHERE
-					dep.location='%Goods_DepartureICAO%'
+					dep.location=UPPER('%Goods_DepartureICAO%')
 					AND dep.type %qIllicit%
 					AND dep.type %qNormal%
 					AND dep.type %qPerishable%
@@ -1312,7 +1324,7 @@ Goods_RefreshMissions:
 					ON dep.name=dest.name
 					WHERE
 						[Profit/u] > 0
-						AND dep.location='%qDeparture%'
+						AND dep.location=UPPER('%qDeparture%')
 						AND dep.type %qIllicit%
 						AND dep.type %qNormal%
 						AND dep.type %qPerishable%
@@ -1341,7 +1353,7 @@ Goods_RefreshMissions:
 				TradesRow[5] := ROUND(TradesRow[3]/TradesRow[4],0)
 				TradesNextGoodsQuery = 
 				(
-					SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+					SELECT name FROM goodsMarket WHERE location=UPPER('%qArrival%') AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
 				)
 				If !(TradesNextGoodsResult := SQLiteGetTable(DB, TradesNextGoodsQuery)) {
 					return
@@ -1555,12 +1567,12 @@ Goods_RefreshMarket:
 			[Profit/u] > 0
 			AND dep.tradeType=0
 			AND dest.tradeType=1
-			AND dep.location='%Goods_DepartureICAO%'
+			AND dep.location=UPPER('%Goods_DepartureICAO%')
 			AND dep.type %qIllicit%
 			AND dep.type %qNormal%
 			AND dep.type %qPerishable%
 			AND dep.type %qFragile%
-			AND dest.location='%Goods_ArrivalICAO%'
+			AND dest.location=UPPER('%Goods_ArrivalICAO%')
 			AND dep.quantity>0
 			AND dest.quantity>0
 			AND %qDepRefreshDateField% > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
@@ -1598,6 +1610,7 @@ Goods_RefreshMarket:
 	GuiControl, , Goods_GoodsWeight, % ROUND(goodsWeight,0)
 	GuiControl, Text, Goods_OptimalGoodsText, % "Displaying " . OptimalResult.RowCount . " viable goods"
 	LV_ShowTable(OptimalResult, "Goods_TradesLV")
+	GuiControl, , Flight_AirportICAO, % Goods_ArrivalICAO
 	GoSub Goods_CheckHangar
 	SB_SetText("Optimal goods refreshed")
 	return
@@ -1815,13 +1828,50 @@ SummaryGuiClose:
 }
 
 ; == Auto-Market tab Subroutines ==
+Auto_DistanceDropDown:
+{
+	GuiControlGet, Auto_DistanceDropDown ; AltSubmit being used; will be indexed.
+	Switch Auto_DistanceDropDown
+	{
+		Case 1: 
+			GuiControl, Text, Auto_MinDistance, 0
+			GuiControl, Text, Auto_MaxDistance, 50
+		Case 2:
+			GuiControl, Text, Auto_MinDistance, 50
+			GuiControl, Text, Auto_MaxDistance, 100
+		Case 3:
+			GuiControl, Text, Auto_MinDistance, 300
+			GuiControl, Text, Auto_MaxDistance, 1000
+		Case 4:
+			GuiControl, Text, Auto_MinDistance, 1000
+			GuiControl, Text, Auto_MaxDistance, 3000
+		Case 5:
+			GuiControl, Text, Auto_MinDistance, 3000
+			GuiControl, Text, Auto_MaxDistance, 99999
+		Case 6:
+			GuiControl, Text, Auto_MinDistance, 0
+			GuiControl, Text, Auto_MaxDistance, 99999
+		Default:
+			GuiControl, Text, Auto_MinDistance, 0
+			GuiControl, Text, Auto_MaxDistance, 99999
+	}
+	return
+}	
+
 Auto_List:
 {
 	Gui, Main:Default
 	SB_SetText("Finding list ICAOs to search...")
 	LV_Clear("Auto_ListLV")
 	GuiControlGet, Auto_CenterICAO
+	GuiControlGet, Auto_MinDistance
 	GuiControlGet, Auto_MaxDistance
+	GuiControlGet, Auto_MissionType
+	If (Auto_MissionType=="Any") {
+		qMissionTypeClause := "1=1"
+	} Else {
+		qMissionTypeClause := "m.missionTypeS = '" . Auto_MissionType . "'"
+	}
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	qExpiration := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "m.expiration")
@@ -1840,8 +1890,10 @@ Auto_List:
 		ON
 			a.ident = m.arrival
 		WHERE
-			m.departure = '%Auto_CenterICAO%'
+			m.departure = UPPER('%Auto_CenterICAO%')
+			AND %qMissionTypeClause%
 			AND m.dist <= %Auto_MaxDistance%
+			AND m.dist >= %Auto_MinDistance%
 			AND %qExpiration% > DATETIME('now', 'localtime')
 			AND m.arrival NOT IN (
 				SELECT DISTINCT gm.location FROM goodsMarket AS gm WHERE %qRefreshDate% > DATETIME('now', '-%marketRefreshHours% hours', 'localtime') )
@@ -2053,14 +2105,16 @@ AircraftMarket_Search:
 	GuiControl, Text, AircraftMarket_AircraftText, % "Searching aircraft market..."
 	GuiControlGet, AircraftMarket_Aircraft
 	moveCostPerMile := 9.0
+	qPilotID := Pilot.id
 	PilotLocationQuery = 
 	(	
-		SELECT lonx, laty FROM airport WHERE ident=(SELECT pilotCurrentICAO FROM career WHERE id=(SELECT pilotID FROM currentPilot LIMIT 1) LIMIT 1) LIMIT 1
+		SELECT lonx, laty FROM airport WHERE ident=(SELECT pilotCurrentICAO FROM career WHERE id=%qPilotID% LIMIT 1) LIMIT 1
 	)
 	If !(PilotLocationResult := SQLiteGetTable(DB, PilotLocationQuery)) {
 		return
 	}
 	If (!PilotLocationResult.HasRows) {
+		MsgBox Could not get pilot location.
 		return
 	} Else {
 		PilotLocationResult.GetRow(1, PilotLocationRow)
@@ -2174,20 +2228,26 @@ Generator_FindLatLon:
 	GuiControlGet, Generator_arrival
 	DepartureLocQuery = 
 	(
-		SELECT lonx, laty FROM airport WHERE ident='%Generator_departure%' LIMIT 1
+		SELECT lonx, laty FROM airport WHERE ident=UPPER('%Generator_departure%') LIMIT 1
 	)
 	If !(DepartureLocResult := SQLiteGetTable(DB, DepartureLocQuery)) {
 		return
+	}
+	If (ArrivalLocResult.RowCount<1) {
+		MsgBox Could not find information for ICAO '%Generator_departure%'
 	}
 	DepartureLocResult.GetRow(1, DepartureLocRow)
 	lonDep := DepartureLocRow[1]
 	latDep := DepartureLocRow[2]
 	ArrivalLocQuery = 
 	(
-		SELECT lonx, laty FROM airport WHERE ident='%Generator_arrival%' LIMIT 1
+		SELECT lonx, laty FROM airport WHERE ident=UPPER('%Generator_arrival%') LIMIT 1
 	)
 	If !(ArrivalLocResult := SQLiteGetTable(DB, ArrivalLocQuery)) {
 		return
+	}
+	If (ArrivalLocResult.RowCount<1) {
+		MsgBox Could not find information for ICAO '%Generator_arrival%'
 	}
 	ArrivalLocResult.GetRow(1, ArrivalLocRow)
 	lonArriv := ArrivalLocRow[1]
@@ -2312,13 +2372,13 @@ Generator_Preview:
 		NextPreviewQuery =
 		(
 			SELECT
-				'%Generator_departure%' AS departure,
+				UPPER('%Generator_departure%') AS departure,
 				'%Generator_latDep%' AS latDep,
 				'%Generator_lonDep%' AS lonDep,
 				'' AS escale,
 				0 AS latEsc,
 				0 AS lonEsc,
-				'%Generator_arrival%' AS arrival,
+				UPPER('%Generator_arrival%') AS arrival,
 				'%Generator_latArriv%' AS latArriv,
 				'%Generator_lonArriv%' AS lonArriv,
 				1000 AS altMax,
@@ -2697,6 +2757,7 @@ Company_ConsolidateLoans:
 	}	
 	return
 }
+
 Company_Finances:
 {
 	SB_SetText("Displaying pilot financials...")
@@ -2719,11 +2780,12 @@ Company_Finances:
 			qDateMax := "DATETIME('now','localtime','+1 days')"
 	}
 	qBalancesDate := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "date")
+	qPilotID := Pilot.ID
 	BalancesSelectQuery = 
 	(
 		SELECT date AS [Transaction Date], description AS Description, incomes AS Income, expenses AS Expenses, '' AS ''
 		FROM balances
-		WHERE owner = (SELECT pilotID FROM currentPilot LIMIT 1)
+		WHERE owner = %qPilotID%
 		AND [Transaction Date] >= %qDateMin%
 		AND [Transaction Date] <= %qDateMax%
 		ORDER BY [Transaction Date] DESC
@@ -2894,7 +2956,7 @@ Flight_CalculateDescent:
 	GuiControlGet, Flight_CurrentAltitude
 	AirportQuery = 
 	(
-		SELECT altitude, tower_frequency, unicom_frequency, atis_frequency, asos_frequency, awos_frequency FROM airport WHERE ident = '%Flight_AirportICAO%' LIMIT 1
+		SELECT altitude, tower_frequency, unicom_frequency, atis_frequency, asos_frequency, awos_frequency FROM airport WHERE ident = UPPER('%Flight_AirportICAO%') LIMIT 1
 	)
 	If !(AirportResult := SQLiteGetTable(DB, AirportQuery)) {
 		return
@@ -3302,7 +3364,23 @@ Mission					|		Goods
 Assumptions:
 
 Date format always follows HKEY_CURRENT_USER\Control Panel\International, sShortDate
-Time format follows HKEY_CURRENT_USER\Control Panel\International, sTimeFormat ONLY FOR GOODS. Missions seem to always use 24hr format.
+Time format follows HKEY_CURRENT_USER\Control Panel\International, sTimeFormat as "default". Some fields force 24 hour "hh:mm:ss" format. See below:
+
+balances: force24
+canJumpMissions: force24
+cargo: default
+crew: default
+dispatcher: default
+fbo: default
+goodsMarket: default
+loanpayments: force24
+loans: force24
+log: force24
+missions: force24
+missionsFBO: force24 (guess)
+missionsStacked: force24 (guess)
+rentJob: force24
+warehouse: default (guess)
 
 */
 
