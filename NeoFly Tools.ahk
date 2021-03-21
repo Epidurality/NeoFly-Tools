@@ -156,7 +156,7 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
 	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
-	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_RefreshMissions, Auto-Manage Options
+	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_RefreshMissions Checked, Auto-Manage Options
 	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
 	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
 
@@ -255,7 +255,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Radio, x+10 yp-5 vMarket_RadioBuy, Buy
 	Gui, Add, Radio, y+10 Checked vMarket_RadioSell, Sell
 	Gui, Add, Text, x+40 y+-30, Show`nDistance From:
-	Gui, Add, Edit, x+10 w75 vMarket_DepartureICAO, KJFK
+	Gui, Add, Edit, x+10 w75 vMarket_DepartureICAO,
 	Gui, Add, Text, x+20, Show Goods`nOnly At:
 	Gui, Add, Edit, x+10 w75 vMarket_FilterICAO,
 
@@ -395,18 +395,26 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Button, x+150 gCompany_CleanLoans, Clean Up Loans
 	Gui, Add, ListView, xs+10 y+10 w895 h200 Grid vCompany_FinancesLV -Multi
 	
-	Gui, Add, GroupBox, xm+10 y+20 w915 h250 Section, Crew
+	Gui, Add, GroupBox, xm+10 y+20 w915 h125 Section, Hire Crew
 	Gui, Add, Button, xs+10 ys+20 gCompany_CrewRefresh, Refresh
 	Gui, Add, Text, x+10, Duration:
 	Gui, Add, Edit, x+5 w30 vCompany_CrewDuration, 1
 	Gui, Add, Text, x+2, day(s)
 	Gui, Add, ListView, x+10 w400 h100 vCompany_CrewLV gCompany_CrewLVClick Grid -Multi
+	
+	Gui, Add, GroupBox, xm+10 y+20 w915 h225 Section, Dispatch
+	Gui, Add, ListView, xs+10 ys+20 w400 h150 vCompany_DispatchCrewLV Grid -Multi
+	Gui, Add, ListView, x+20 w400 h150 vCompany_DispatchPlanesLV Grid -Multi
+	Gui, Add, Text, x+10, Duration (hrs):
+	Gui, Add, Edit, y+10 w50 vCompany_DispatchDuration, 12
+	Gui, Add, Button, xs+10 y+120 gCompany_Dispatch, Dispatch the Crew/Plane
+	Gui, Add, Button, x+200 gCompany_DispatchRefresh, Refresh
 }
 
 ; Gui Flight Tools tab
 {
 	Gui, Tab, Flight Tools
-	Gui, Add, GroupBox, xm+10 y70 w915 h100, Descent Calculator
+	Gui, Add, GroupBox, xm+10 y70 w915 h120, Descent Calculator
 	
 	Gui, Add, Text, xp+20 yp+20 Section, Airport ICAO:
 	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO,
@@ -416,23 +424,30 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Edit, x+5 w50 vFlight_Speed, 120
 	Gui, Add, Text, x+20, Glide Slope (deg):
 	Gui, Add, Edit, x+5 w50 vFlight_GlideSlope, 3
+	Gui, Add, Text, x+20, Pattern Alt (ft):
+	Gui, Add, Edit, x+5 w50 vFlight_PatternAltitude, 1000
+	
+	
+	Gui, Add, Button, xs y+10 gFlight_CalculateDescent, Calculate Descent
+	Gui, Add, Text, x+40, Start at:
+	Gui, Add, Text, x+5 w50 vFlight_DescentDistance, ---
+	Gui, Add, Text, x+20, Descend at:
+	Gui, Add, Text, x+5 w50 vFlight_DescentRate, ---
+	Gui, Add, Text, x+20, Final Approach:
+	Gui, Add, Text, x+5 w150 vFlight_FinalApproach, ---
+	
+	Gui, Add, Text, xs y+25, Airport Info:
+	Gui, Add, Text, x+20, Airport Altitude:
+	Gui, Add, Text, x+5 w50 vFlight_AirportAlt, ---
+	Gui, Add, Text, x+20, Tower Freq:
+	Gui, Add, Text, x+5 w100 vFlight_AirportTowerFreq, ---
+	Gui, Add, Text, x+10, Weather Freq:
+	Gui, Add, Text, x+5 w100 vFlight_AirportWeatherFreq, ---
 	Gui, Font, Underline cBlue
 	Gui, Add, Text, x+40 gFlight_Skyvector, SkyVector Link
 	Gui, Font
 	
-	Gui, Add, Button, xs y+20 gFlight_CalculateDescent, Calculate Descent
-	Gui, Add, Text, x+40, Start at (nm):
-	Gui, Add, Text, x+5 w50 vFlight_DescentDistance, ---
-	Gui, Add, Text, x+20, Descend at (fpm):
-	Gui, Add, Text, x+5 w50 vFlight_DescentRate, ---
-	Gui, Add, Text, x+20, Airport Altitude (ft):
-	Gui, Add, Text, x+5 w50 vFlight_AirportAlt, ---
-	Gui, Add, Text, xs+375 y+15, Tower Freq:
-	Gui, Add, Text, x+5 w100 vFlight_AirportTowerFreq, ---
-	Gui, Add, Text, x+10, Weather Freq:
-	Gui, Add, Text, x+5 w100 vFlight_AirportWeatherFreq, ---
-	
-	Gui, Add, GroupBox, xm+10 y+50 w915 h60, Stopwatch
+	Gui, Add, GroupBox, xm+10 y+25 w915 h60, Stopwatch
 	Gui, Font, s15
 	Gui, Add, Text, xp+20 yp+20 w200 Center vFlight_StopwatchDisplay, 0:00:00
 	Gui, Font
@@ -1838,7 +1853,7 @@ Auto_DistanceDropDown:
 			GuiControl, Text, Auto_MaxDistance, 50
 		Case 2:
 			GuiControl, Text, Auto_MinDistance, 50
-			GuiControl, Text, Auto_MaxDistance, 100
+			GuiControl, Text, Auto_MaxDistance, 300
 		Case 3:
 			GuiControl, Text, Auto_MinDistance, 300
 			GuiControl, Text, Auto_MaxDistance, 1000
@@ -2105,6 +2120,7 @@ AircraftMarket_Search:
 	GuiControl, Text, AircraftMarket_AircraftText, % "Searching aircraft market..."
 	GuiControlGet, AircraftMarket_Aircraft
 	moveCostPerMile := 9.0
+	maximumMoveCost := 5000
 	qPilotID := Pilot.id
 	PilotLocationQuery = 
 	(	
@@ -2121,7 +2137,7 @@ AircraftMarket_Search:
 		pilotLonX := PilotLocationRow[1]
 		pilotLatY := PilotLocationRow[2]
 	}
-
+	
 	qPilotWeight := Pilot.weight
 	AircraftMarketQuery = 
 	(
@@ -2168,7 +2184,7 @@ AircraftMarket_Search:
 	Loop % AircraftMarketResult.RowCount {
 		AircraftMarketResult.Next(AircraftMarketRow)
 		AircraftMarketRow[6] := ROUND(0.000539957*InvVincenty(pilotLatY, pilotLonX, AircraftMarketRow[8], AircraftMarketRow[7]), 0)
-		AircraftMarketRow[4] := ROUND(AircraftMarketRow[6] * moveCostPerMile,0)
+		AircraftMarketRow[4] := ROUND(MIN(AircraftMarketRow[6] * moveCostPerMile, maximumMoveCost),0)
 		AircraftMarketRow[5] := ROUND(AircraftMarketRow[3] + AircraftMarketRow[4],0)
 		AircraftMarketRow[16] := ROUND(AircraftMarketRow[5] / AircraftMarketRow[11],0) ; Cost/range
 		AircraftMarketRow[17] := ROUND(AircraftMarketRow[5] / AircraftMarketRow[13],0) ; Cost/payload
@@ -2233,7 +2249,7 @@ Generator_FindLatLon:
 	If !(DepartureLocResult := SQLiteGetTable(DB, DepartureLocQuery)) {
 		return
 	}
-	If (ArrivalLocResult.RowCount<1) {
+	If (DepartureLocResult.RowCount<1) {
 		MsgBox Could not find information for ICAO '%Generator_departure%'
 	}
 	DepartureLocResult.GetRow(1, DepartureLocRow)
@@ -2866,7 +2882,7 @@ Company_CrewRefresh:
 	AipilotsListQuery =
 	(
 		SELECT id AS ID, name AS Name, wages AS [Wages/day],
-			IIF(catA='TRUE', 'A ', '') || IIF(catB='TRUE', 'B ', '') || IIF(catC='TRUE', 'C ', '') || IIF(catD='TRUE', 'D ', '') || IIF(catE='TRUE', 'E ', '')|| IIF(catF='TRUE', 'F ', '') AS Qualifications
+			IIF(catA LIKE 'TRUE', 'A ', '') || IIF(catB LIKE 'TRUE', 'B ', '') || IIF(catC LIKE 'TRUE', 'C ', '') || IIF(catD LIKE 'TRUE', 'D ', '') || IIF(catE LIKE 'TRUE', 'E ', '')|| IIF(catF LIKE 'TRUE', 'F ', '') AS Qualifications
 		FROM aipilots
 		WHERE status = 0
 		ORDER BY id ASC
@@ -2947,6 +2963,174 @@ Company_CrewLVClick:
 	return
 }
 
+Company_DispatchRefresh:
+{
+	SB_SetText("Refreshing available dispatch resources...")
+	Gui, Main:Default
+	qPilotId := Pilot.ID
+	; Get list of crew
+	qEndDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dateend")
+	HiredPilotsListQuery = 
+	(
+		SELECT 
+			id AS ID, 
+			name AS Name, 
+			%qEndDateField% AS End,
+			24.0*(julianday(%qEndDateField%) - julianday('now', 'localtime')) AS 'Contract Hrs Left',
+			IIF(catA LIKE 'TRUE', 'A ', '') || IIF(catB LIKE 'TRUE', 'B ', '') || IIF(catC LIKE 'TRUE', 'C ', '') || IIF(catD LIKE 'TRUE', 'D ', '') || IIF(catE LIKE 'TRUE', 'E ', '')|| IIF(catF LIKE 'TRUE', 'F ', '') AS Qualifications
+		FROM crew
+		WHERE
+			owner = %qPilotID%
+			AND status=0
+	)
+	If !(HiredPilotsResult := SQLiteGetTable(DB, HiredPilotsListQuery)) {
+		return
+	}
+	LV_ShowTable(HiredPilotsResult, "Company_DispatchCrewLV")
+	; Get available planes
+	AvailablePlanesQuery = 
+	(
+		SELECT 
+			hangar.id AS ID,
+			hangar.tailNumber AS Tail,
+			hangar.Aircraft, 
+			CASE hangar.status
+				WHEN 0 THEN 'Available'
+				WHEN 1 THEN 'Flying'
+				WHEN 3 THEN 'Hired'
+				WHEN 5 THEN 'Removed'
+				ELSE 'Unknown'
+			END AS Status, 
+			hangar.MaxPayloadlbs AS [Max Payload],
+			hangar.Location,
+			hangar.currentFuel AS Fuel,
+			aircraftdata.FuelCaplbs AS [Max Fuel],
+			hangar.Qualification,
+			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)],
+			hangar.Rangenm AS Range
+		FROM hangar 
+		INNER JOIN 
+			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
+		WHERE owner=%qPilotID%
+		AND hangar.status = 0
+		ORDER BY hangar.id
+	)
+	If !(AvailablePlanesResult := SQLiteGetTable(DB, AvailablePlanesQuery)) {
+		return
+	}
+	LV_ShowTable(AvailablePlanesResult, "Company_DispatchPlanesLV")
+	SB_SetText("Dispatch resources refreshed.")
+	return
+}
+
+Company_Dispatch:
+{
+	SB_SetText("Dispatching crew...")
+	Gui, Main:Default
+	GuiControlGet, Company_DispatchDuration
+	Gui, ListView, Company_DispatchCrewLV
+	SelectedCrewRow := LV_GetNext()
+	If !(SelectedCrewRow) {
+		MsgBox You must select a crew member!
+		return
+	}
+	LV_GetText(CrewID, SelectedCrewRow, 1)
+	LV_GetText(CrewName, SelectedCrewRow, 2)
+	LV_GetText(CrewContractHrs, SelectedCrewRow, 3)
+	LV_GetText(CrewQualification, SelectedCrewRow, 5)
+	Gui, ListView, Company_DispatchPlanesLV
+	SelectedPlaneRow := LV_GetNext()
+	If !(SelectedPlaneRow) {
+		MsgBox You must select an available plane!
+		return
+	}
+	LV_GetText(PlaneID, SelectedPlaneRow, 1)
+	LV_GetText(PlanePayload, SelectedPlaneRow, 5)
+	LV_GetText(PlaneLocation, SelectedPlaneRow, 6)
+	LV_GetText(PlaneQualification, SelectedPlaneRow, 9)
+	LV_GetText(PlaneSpeed, SelectedPlaneRow, 10)
+	If !(InStr(CrewQualification, PlaneQualification)) {
+		MsgBox Crew member is not qualified to fly this plane.
+		return
+	}
+	If (Company_DispatchDuration>CrewContractHrs) {
+		MsgBox Crew member is not available for the full duration.
+		return
+	}
+	; Find ICAO
+	ReturnICAOQuery =
+	(
+		SELECT a.lonx, a.laty FROM airport AS a
+		INNER JOIN hangar AS h ON h.Location = a.ident
+		WHERE h.id = %PlaneID%
+		LIMIT 1
+	)
+	If !(ReturnICAOResult := SQLiteGetTable(DB, ReturnICAOQuery)) {
+		return
+	}
+	If (ReturnICAOResult.RowCount<1) {
+		MsgBox Could not find information for ICAO at plane location.
+		return
+	}
+	ReturnICAOResult.GetRow(1, ReturnICAORow)
+	; Calculate distances and payment
+	incomePerMile := 100
+	incomePerPayloadPerMile := 0.20
+	estimatedDistance := PlaneSpeed * Company_DispatchDuration
+	estimatedPay := ROUND(estimatedDistance*(incomePerMile + incomePerPayloadPerMile*PlanePayload),0)
+	; At the moment it appears NeoFly takes into account the CurrentLat/CurrentLon, and the Destination ICAO in order to calculate where the hired plane is/should be along its trip.
+	currentLat := ReturnICAORow[2] + 1 ; This will be 60nm away.
+	currentLon := ReturnICAORow[1]
+	latDest := ReturnICAORow[2]
+	lonDest := ReturnICAORow[1]
+	qMissionSpeed := 60.0/Company_DispatchDuration
+	
+	MsgBox, 36, Confirm Dispatch, % "Plane and crew member will be unavailable for " . Company_DispatchDuration . "hr(s), but will provide " . prettyNumbers(estimatedPay, true) . " of income once complete.`n`nNOTES:`n- You will need to restart NeoFly for it to update initially; once you can see the flights are moving, NeoFly will continue as normal.`n- Do NOT jump to the mission, as it will cause a crash.`n- DO NOT double-click the AI plane, as it will cause a crash."
+	IfMsgBox Yes
+	{
+		; Other query vars
+		qNowTimestamp := TimestampFormat(A_Now, true)
+		qZeroTimestamp := TimestampFormat(16010101000000, true)
+		qPilotID := Pilot.ID
+		RentJobInsertQuery = 
+		(
+			INSERT INTO rentJob (id, status, departure, destination, pay, missiontype, aircraftID, distance, speed, dateStart, dateEnd, owner, currentLat, currentLon, cjmID, info, pilotName, latDest, lonDest)
+			VALUES (
+				(SELECT id FROM rentJob ORDER BY id DESC LIMIT 1)+1,
+				2,
+				'ZZZZ',
+				'%PlaneLocation%',
+				%estimatedPay%,
+				2,
+				%PlaneID%,
+				%estimatedDistance%,
+				%qMissionSpeed%,
+				'%qNowTimestamp%',
+				'%qZeroTimestamp%',
+				%qPilotID%,
+				%currentLat%,
+				%currentLon%,
+				(SELECT id FROM canJumpMissions ORDER BY id DESC LIMIT 1),
+				'NFT Dispatch ',
+				'%CrewName%',
+				%latDest%,
+				%lonDest%);
+				
+			UPDATE crew SET status=1, idRentJob=(SELECT id FROM rentJob ORDER BY id DESC LIMIT 1)
+				WHERE id=%CrewID%;
+				
+			UPDATE hangar SET status=3 WHERE id=%PlaneID%;		
+		)
+		
+		If !(SQLiteExecute(DB, RentJobInsertQuery)) {
+			return
+		}
+		GoSub Company_DispatchRefresh
+	}
+	SB_SetText("Crew dispatched.")
+	return
+}
+
 ; == Flight Tools Tab Subroutines == 
 Flight_CalculateDescent:
 {
@@ -2954,6 +3138,7 @@ Flight_CalculateDescent:
 	GuiControlGet, Flight_Speed
 	GuiControlGet, Flight_GlideSlope
 	GuiControlGet, Flight_CurrentAltitude
+	GuiControlGet, Flight_PatternAltitude
 	AirportQuery = 
 	(
 		SELECT altitude, tower_frequency, unicom_frequency, atis_frequency, asos_frequency, awos_frequency FROM airport WHERE ident = UPPER('%Flight_AirportICAO%') LIMIT 1
@@ -2984,9 +3169,15 @@ Flight_CalculateDescent:
 	} else {
 		GuiControl, Text, Flight_AirportWeatherFreq, % "Not in DB"
 	}
-	GuiControl, Text, Flight_AirportAlt, % AirportRow[1]
-	GuiControl, Text, Flight_DescentDistance, % ROUND((Flight_CurrentAltitude-AirportRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
-	GuiControl, Text, Flight_DescentRate, % CEIL(100.0*Flight_Speed/60.0*Flight_GlideSlope/50)*50
+	GuiControl, Text, Flight_AirportAlt, % AirportRow[1] . " ft"
+	; Calculate descent
+	verticalDistance := Flight_CurrentAltitude - AirportRow[1] - Flight_PatternAltitude
+	horizontalDistance := ROUND((Flight_CurrentAltitude-AirportRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
+	approachDistance := ROUND(Flight_PatternAltitude/Tan(dtr(Flight_GlideSlope))/6076.12,1)
+	approachHeight := AirportRow[1] + Flight_PatternAltitude
+	GuiControl, Text, Flight_DescentDistance, % horizontalDistance . " nm"
+	GuiControl, Text, Flight_DescentRate, % CEIL(100.0*Flight_Speed/60.0*Flight_GlideSlope/50)*50 . " fpm"
+	GuiControl, Text, Flight_FinalApproach, % approachDistance . " nm @ " . approachHeight . " ft"
 	return
 }
 
