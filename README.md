@@ -198,6 +198,9 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Capped the pilot movement cost in the *Aircraft Market* tab to 5000 (NeoFly update 2.18).
 - Added a basic "final approach" info bit to the *Flight Tools* and moved things around.
 - Fixed bug with Mission Generator incorrectly saying it can't find information on ICAOs.
+- Added Dispatch tool in *Company Manager*
+- Removed *Debug* tab (that wasn't supposed to stay there...)
+- Fixed some GUI positioning stuff.
 
 ### v0.7.0
 - Added a Flight Tools tab for common flight calculations.

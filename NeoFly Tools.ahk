@@ -55,7 +55,7 @@ IniRead, autoMarketHotkey, %iniPath%, Setup, autoMarketHotkey, NumpadEnter
 IniRead, autoMarketStopHotkey, %iniPath%, Setup, autoMarketStopHotkey, NumpadSub
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
-IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
+IniRead, debugFlag, %iniPath%, Debug, debugFlag, 0
 }
 
 ; ==== Main GUI ====
@@ -110,39 +110,39 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Main:Default
 	Gui, Tab, Settings
 	; NOTE: The "always on top" checkbox is going to be under the Settings stuff for organizational purposes, but must be created before the tabs in the Gui Setup
-	Gui, Add, Text, xm+10 y70, Database path:
+	Gui, Add, Text, x+20 y+10 Section, Database path:
 	Gui, Add, Edit, x+10 w300 vSettings_DBPath, % defaultDbPath
 	Gui, Add, Button, x+20 gSettings_Connect, Connect
 	Gui, Add, Button, x+40 gSettings_Disconnect, Disconnect
 	Gui, Add, Text, x+50, NeoFly Tools Version: v%versionNumber%`nUpdates available at`n`t%updateLink%
 
-	Gui, Add, Button, xm+10 y+10 gSettings_Backup, Backup Database
+	Gui, Add, Button, xs y+10 gSettings_Backup, Backup Database
 	Gui, Add, Text, R2 x+10 w600, Always backup your database before using this tool for the first time, or after updates.
 
-	Gui, Add, Text, xm+10 y+30, Selected Pilot:
+	Gui, Add, Text, xs y+30, Selected Pilot:
 	Gui, Add, Text, x+10 vSettings_Pilot, Connect to a database to get pilot information.
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick -Multi
-	Gui, Add, Text, xm+10 y+20,
+	Gui, Add, ListView, xs y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick -Multi
+	Gui, Add, Text, xs y+20,
 	(
 	Notes:
 	Missions, Goods Market, and Aircraft Market are shared between Pilots.
 	Selecting a pilot here effectively just filters your Hangar in the Goods Optimizer.
 	The current NeoFly pilot will be used by default when you Connect to the database.
 	)
-	Gui, Add, Text, xm+10 y+40 w200, Mission.Expiration format:
+	Gui, Add, Text, xs y+40 w200, Mission.Expiration format:
 	Gui, Add, DropDownList, x+10 w200 vSettings_MissionDateFormat, %dateFormats%
-	Gui, Add, Text, xm+10 y+10 w200, GoodsMarket.RefreshDate format:
+	Gui, Add, Text, xs y+10 w200, GoodsMarket.RefreshDate format:
 	Gui, Add, DropDownList, x+10 w200 vSettings_GoodsDateFormat, %dateFormats%
 	Gui, Add, Button, x+20 w150 y+-40 gSettings_TimestampPreview, Preview These Settings
-	Gui, Add, Text, xm+10 y+25, Note: The '/' can be any character and leading zeroes don't matter, for example: yyyy.m.d format will work when using yyyy/mm/dd option. Use the button above to double-check.`nNote: Missions and Goods may use different formats depending on your locale.
-	Gui, Add, Text, xm+10 y+20, Date Formatting Samples from Database:`t`t`tNote: These dates are drawn from the Missions and GoodsMarket tables, so you must have data in them.
-	Gui, Add, ListView, xm+10 y+10 w915 h150 Count1000 vSettings_TimestampLV -Multi
+	Gui, Add, Text, xs y+25, Note: The '/' can be any character and leading zeroes don't matter, for example: yyyy.m.d format will work when using yyyy/mm/dd option. Use the button above to double-check.`nNote: Missions and Goods may use different formats depending on your locale.
+	Gui, Add, Text, xs y+20, Date Formatting Samples from Database:`t`t`tNote: These dates are drawn from the Missions and GoodsMarket tables, so you must have data in them.
+	Gui, Add, ListView, xs y+10 w915 h150 Count1000 vSettings_TimestampLV -Multi
 }
 
 ; GUI Goods Optimizer tab
 {
 	Gui, Tab, Goods Optimizer
-	Gui, Add, Text, xm+10 R2 y70, Departure`nICAO:
+	Gui, Add, Text, x+20 y+10 R2 Section, Departure`nICAO:
 	Gui, Add, Edit, x+5 w50 h25 vGoods_DepartureICAO,
 	Gui, Add, Text, R2 x+20, Arrival`nICAO:
 	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_ArrivalICAO, ---
@@ -153,24 +153,24 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Text, R2 x+20, Onboard`nGoods (lbs):
 	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_OnboardCargo, ---
 	
-	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
+	Gui, Add, Button, x+30 ys w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
-	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
+	Gui, Add, Text, xs+340 y+10 vGoods_Hangar, Hangar:
 	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_RefreshMissions Checked, Auto-Manage Options
 	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
-	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
+	Gui, Add, ListView, xs+340 y+10 w570 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
 
-	Gui, Add, Button, xm+100 y105 h20 w150 gSummary_Show, Summary / AutoBuy
-	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
+	Gui, Add, Button, xs+100 ys+35 h20 w150 gSummary_Show, Summary / AutoBuy
+	Gui, Add, Text, xs+20 y+5 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
-	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
+	Gui, Add, Text, xs+20 y+10 w50 hp, Fuel:
 	Gui, Add, Text, x+10 w250 hp vGoods_FuelInfo, ---
-	Gui, Add, Text, xm+20 y+10 w50 hp, Payload:
+	Gui, Add, Text, xs+20 y+10 w50 hp, Payload:
 	Gui, Add, Text, x+10 w250 hp vGoods_PayloadInfo, ---
-	Gui, Add, Text, xm+20 y+10 w50 hp, Mission:
+	Gui, Add, Text, xs+20 y+10 w50 hp, Mission:
 	Gui, Add, Text, x+10 w250 hp vGoods_MissionInfo, ---
 
-	Gui, Add, Text, xm+70 y+10, Arrival Requirements:
+	Gui, Add, Text, xs+50 y+10, Arrival Requirements:
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalILS gGoods_RefreshMissions, ILS
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalApproach gGoods_RefreshMissions, Approach
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalLights gGoods_RefreshMissions, Rwy Lights
@@ -181,7 +181,7 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Edit, x+10 w50 vGoods_ArrivalRwyLen, 0
 	Gui, Add, Checkbox, x+5 vGoods_AutoRwyLen Checked, Auto
 
-	Gui, Add, Button, xm+10 y+10 gGoods_RefreshMissions, Refresh Missions
+	Gui, Add, Button, xs y+10 gGoods_RefreshMissions, Refresh Missions
 	Gui, Add, Text, x+20, Goods Filters:
 	Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit gGoods_RefreshMissions, Illicit
 	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked gGoods_RefreshMissions, Fragile
@@ -194,28 +194,28 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Edit, x+2 vGoods_MaxRange w40 h20, 9999
 	Gui, Add, Checkbox, x+5 vGoods_AutoMaxRange Checked, Auto
 	
-	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
+	Gui, Add, Text, xs y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
 	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions
 	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show Missions w/o Trades
 	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick -Multi
 
-	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
+	Gui, Add, Text, xs y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
 	Gui, Add, Text, x+5 w500 vGoods_TradeMissionsText, 
 	Gui, Add, ListView, xm+10 y+10 w915 h100 Count500 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick -Multi
 
-	Gui, Add, Text, xm+10 y+10 vGoods_Trades, Optimal Goods:
+	Gui, Add, Text, xs y+10 vGoods_Trades, Optimal Goods:
 	Gui, Add, Text, x+5 w300 vGoods_OptimalGoodsText,
 	Gui, Font, cRed
 	Gui, Add, Text, x+10 w500 vGoods_WarningText
 	Gui, Font
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_TradesLV -Multi
+	Gui, Add, ListView, xs y+10 w915 h100 Grid vGoods_TradesLV -Multi
 }
 
 ; GUI Auto-Market
 {
 	Gui, Tab, Auto-Market
-	Gui, Add, Text, xm+10 y70, Center ICAO:
+	Gui, Add, Text, x+20 y+10 Section, Center ICAO:
 	Gui, Add, Edit, x+10 w50 vAuto_CenterICAO,
 	Gui, Add, Text, x+30, Min. Distance
 	Gui, Add, Edit, x+10 w75 vAuto_MinDistance, 0
@@ -224,17 +224,17 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, DropDownList, x+30 w175 gAuto_DistanceDropDown vAuto_DistanceDropDown AltSubmit, Bush: 0 to 50||Small Trip: 50 to 300|Short haul: 300 to 1000|Medium haul: 1000 to 3000|Long Haul: >3000|All
 	Gui, Add, DropDownList, x+20 w100 vAuto_MissionType, Any||Pax|Cargo|Mail|Sensitive cargo|VIP pax|Secret pax|Airline
 	
-	Gui, Add, Button, xm+10 y+20 gAuto_List, List ICAOs
+	Gui, Add, Button, xs y+20 gAuto_List, List ICAOs
 	Gui, Add, Text, x+40, 
 	(
 List is generated by using active Missions at the Center ICAO as a list of viable market destinations, and filters out ones with already valid markets.
 If no ICAOs are showing, try Searching or Resetting your Missions at the Center ICAO.
 	)
 	
-	Gui, Add, Text, xm+10 y+20, ICAOs to Search:
-	Gui, Add, ListView, xm+10 y+10 w915 h300 vAuto_ListLV
+	Gui, Add, Text, xs y+20, ICAOs to Search:
+	Gui, Add, ListView, xs y+10 w915 h300 vAuto_ListLV
 	
-	Gui, Add, Button, xm+10 y+20 gAuto_Load, Load for Entry
+	Gui, Add, Button, xs y+20 gAuto_Load, Load for Entry
 	Gui, Add, Button, x+30 gAuto_Unload, Stop Entry
 	Gui, Add, Button, x+30 gAuto_AutoEntry, Auto Entry
 	Gui, Add, Checkbox, x+30 vAuto_IgnoreWindow, Ignore Active Window Check`n(only use if script is not properly detecting that NeoFly is the active window)
@@ -242,14 +242,14 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Edit, x+5 vAuto_Delay, 500
 	
 	Gui, Font, Bold
-	Gui, Add, Text, xm+10 y+30, Please read the included Readme for instructions on using this part of the tool.
+	Gui, Add, Text, xs y+30, Please read the included Readme for instructions on using this part of the tool.
 	Gui, Font
 }
 
 ; GUI Market Finder tab
 {
 	Gui, Tab, Market Finder
-	Gui, Add, Text, xm+10 y70 w50, Name:
+	Gui, Add, Text, x+20 y+10 w50 Section, Name:
 	Gui, Add, ComboBox, x+10 w200 vMarket_Name, ||Beer|Caviar|Cigarette|Clothes|Coffee|Computer|Contraband Cigars|Fish|Flower|Fruit|Fuel|Magazine|Meat|Mechanical parts|Medicine|Old wine|Phone|Pillza|Vegetable|Whiskey
 	Gui, Add, Text, x+20 yp+5, I want to
 	Gui, Add, Radio, x+10 yp-5 vMarket_RadioBuy, Buy
@@ -259,22 +259,22 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+20, Show Goods`nOnly At:
 	Gui, Add, Edit, x+10 w75 vMarket_FilterICAO,
 
-	Gui, Add, Text, xm+10 y+10 w300, Leave the Name field blank to search for goods of any name.
+	Gui, Add, Text, xs y+10 w300, Leave the Name field blank to search for goods of any name.
 
-	Gui, Add, Text, xm+10 y+20 w50, Type(s):
+	Gui, Add, Text, xs y+20 w50, Type(s):
 	Gui, Add, CheckBox, x+10 Checked vMarket_Normal, Normal
 	Gui, Add, CheckBox, y+10 Checked vMarket_Fragile, Fragile
 	Gui, Add, CheckBox, y+10 Checked vMarket_Perishable, Perishable
 	Gui, Add, CheckBox, y+10 Checked vMarket_Illicit, Illicit
 
-	Gui, Add, Text, xm+10 y+20 w50, Minimum Price:
+	Gui, Add, Text, xs y+20 w50, Minimum Price:
 	Gui, Add, Edit, x+10 w50 vMarket_MinimumPrice, 0
 	Gui, Add, Text, x+30 w50, Maximum Price:
 	Gui, Add, Edit, x+10 w50 vMarket_MaximumPrice, 9999
 	Gui, Add, Button, x+100 w100 gMarket_Search, Search
 	
 
-	Gui, Add, Text, xm+10 y+10, Markets:
+	Gui, Add, Text, xs y+10, Markets:
 	Gui, Add, Text, x+10 w500 vMarket_MarketsText, Press Search to display relevant markets
 	Gui, Add, ListView, xm+10 y+10 w915 h400 Grid vMarket_MarketLV -Multi
 }
@@ -282,28 +282,28 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 ; GUI Aircraft Market tab
 {
 	Gui, Tab, Aircraft Market
-	Gui, Add, Text, xm+10 y70, Aircraft Name (or part of name) as seen in NeoFly database:
+	Gui, Add, Text, x+20 y+10 Section, Aircraft Name (or part of name) as seen in NeoFly database:
 	Gui, Add, Edit, w300 vAircraftMarket_Aircraft, Cessna
 	Gui, Add, Button, x+20 w100 gAircraftMarket_Search, Search
 	Gui, Add, Button, x+150 gAircraftMarket_Compare, Compare Models
-	Gui, Add, Text, xm+10 y+20, Matching Aircraft:
+	Gui, Add, Text, xs y+20, Matching Aircraft:
 	Gui, Add, Text, x+10 w500 vAircraftMarket_AircraftText, Press Search to find aircraft in the market
-	Gui, Add, ListView, xm+10 y+10 w915 h450 Grid vAircraftMarket_LV -Multi
-	Gui, Add, Text, xm+10 y+20, Note: Travel Cost represents a one-way trip from your pilot's current location to the plane's Location.
-	Gui, Add, Text, xm+10 y+20, % "Other Note: Effective Payload is the payload of the plane after subtracting the Pilot's weight (" . Pilot.weight . "lbs) and " . ROUND(fuelPercentForAircraftMarketPayload*100,0) . "% of max fuel."
+	Gui, Add, ListView, xs y+10 w915 h450 Grid vAircraftMarket_LV -Multi
+	Gui, Add, Text, xs y+20, Note: Travel Cost represents a one-way trip from your pilot's current location to the plane's Location.
+	Gui, Add, Text, xs y+20, % "Other Note: Effective Payload is the payload of the plane after subtracting the Pilot's weight (" . Pilot.weight . "lbs) and " . ROUND(fuelPercentForAircraftMarketPayload*100,0) . "% of max fuel."
 }
 
 ; GUI Mission Generator tab
 {
 	Gui, Tab, Mission Generator
-	Gui, Add, Text, xm+10 y70, Departure ICAO:
+	Gui, Add, Text, x+20 y+10 Section, Departure ICAO:
 	Gui, Add, Edit, x+10 w50 vGenerator_departure, KJFK
 	Gui, Add, Text, x+30, Arrival:
 	Gui, Add, Edit, x+10 w200 vGenerator_arrival, KLAX
 	Gui, Add, Text, x+30, Expiration:
 	Gui, Add, Edit, x+10 w150 vGenerator_expiration,
 
-	Gui, Add, Text, xm+10 y+20, Mission Type:
+	Gui, Add, Text, xs y+20, Mission Type:
 	Gui, Add, DropDownList, x+10 vGenerator_missionTypeS, Pax||Cargo|Mail|Sensitive cargo|VIP pax|Secret pax|Emergency|Illicit cargo|tourists ; Airline and Humanitarian missions removed until they work
 	Gui, Add, Text, x+30, Minimum Rank:
 	Gui, Add, DropDownList, x+10 vGenerator_rankS, Cadet||Second Officer|First Officer|Captain|Senior Captain
@@ -312,97 +312,97 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+30, Cargo(lbs):
 	Gui, Add, Edit, x+10 w50 vGenerator_weight, 510
 
-	Gui, Add, Text, xm+10 y+20, Request:
+	Gui, Add, Text, xs y+20, Request:
 	Gui, Add, Edit, x+10 w400 vGenerator_request, This shows up in the mission selection screen of NeoFly
 	Gui, Add, Text, x+30, Tooltip Text:
 	Gui, Add, Edit, x+10 w200 vGenerator_misstoolTip, ToolTip over the mission on the map
 
-	Gui, Add, Text, xm+10 y+20, Reward:
+	Gui, Add, Text, xs y+20, Reward:
 	Gui, Add, Edit, x+10 w75 vGenerator_reward, 12500
 	Gui, Add, Text, x+30, XP:
 	Gui, Add, Edit, x+10 w50 vGenerator_xp, 65
 
-	Gui, Add, Button, xm+10 y+20 gGenerator_FindLatLon, Find Lat/Lon
+	Gui, Add, Button, xs y+20 gGenerator_FindLatLon, Find Lat/Lon
 	Gui, Add, Text, x+10, For Drop Zone and Tourist missions, Arrival Lat/Lon must be entered manually. Try www.gps-coordinates.net
 
-	Gui, Add, Text, xm+10 y+20 w100, Departure Lat:
+	Gui, Add, Text, xs y+20 w100, Departure Lat:
 	Gui, Add, Edit, x+10 w200 vGenerator_latDep,
 	Gui, Add, Text, x+30 w60, Arrival Lat:
 	Gui, Add, Edit, x+10 w200 vGenerator_latArriv,
 
-	Gui, Add, Text, xm+10 y+10 w100, Departure Lon:
+	Gui, Add, Text, xs y+10 w100, Departure Lon:
 	Gui, Add, Edit, x+10 w200 vGenerator_lonDep,
 	Gui, Add, Text, x+30 w60, Arrival Lon:
 	Gui, Add, Edit, x+10 w200 vGenerator_lonArriv,
 
-	Gui, Add, Button, xm+10 y+10 gGenerator_Distance, Calculate Distance
+	Gui, Add, Button, xs y+10 gGenerator_Distance, Calculate Distance
 	Gui, Add, Text, x+20, Distance (nm):
 	Gui, Add, Edit, x+5 w100 vGenerator_dist, 100
 	Gui, Add, Text, x+20, Heading (degrees):
 	Gui, Add, Edit, x+5 w60 vGenerator_hdg, 0
 
-	Gui, Add, Text, xm+10 y+20, Missions to Generate:
+	Gui, Add, Text, xs y+20, Missions to Generate:
 	Gui, Add, Edit, x+10 w50 vGenerator_Quantity, 1
 	Gui, Add, CheckBox, x+10 vGenerator_RandomizePax, Randomize Pax
 	Gui, Add, CheckBox, x+10 vGenerator_RandomizeWeight, Randomize Weight
 	Gui, Add, CheckBox, x+10 vGenerator_RandomizeReward, Randomize Reward
 	Gui, Add, Text, x+20 w225, NOTE: Randimization will be proportional, and uses entered values as maximums.
 
-	Gui, Add, Button, xm+10 y+30 gGenerator_Preview, Generate Missions
+	Gui, Add, Button, xs y+30 gGenerator_Preview, Generate Missions
 
-	Gui, Add, Text, xm+10 y+10, Generated Mission Previews:
+	Gui, Add, Text, xs y+10, Generated Mission Previews:
 
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGenerator_PreviewLV gGenerator_PreviewLVClick
+	Gui, Add, ListView, xs y+10 w915 h100 Grid vGenerator_PreviewLV gGenerator_PreviewLVClick
 
-	Gui, Add, Text, xm+10 y+10, Double-click a row to commit it to the database. IDs added:
+	Gui, Add, Text, xs y+10, Double-click a row to commit it to the database. IDs added:
 	Gui, Add, Edit, x+10 vscroll +readonly w150 h40 vGenerator_AddedIDs,
 
-	Gui, Add, Text, xm+10 y+10 R2, Warning: this can only be reversed by deleting the entry in the database. Recommend noting the generated IDs so that it's easy to find and remove if it causes issues with NeoFly.
+	Gui, Add, Text, xs y+10 R2, Warning: this can only be reversed by deleting the entry in the database. Recommend noting the generated IDs so that it's easy to find and remove if it causes issues with NeoFly.
 }
 
 ; Gui Monitor Hangar tab
 {
 	Gui, Tab, Monitor Hangar
-	Gui, Add, Text, xm+10 y70, Discord Webhook URL:
+	Gui, Add, Text, x+20 y+10 Section, Discord Webhook URL:
 	Gui, Add, Edit, x+10 w780 vMonitor_URL, % discordWebhookURL
 	
-	Gui, Add, Text, xm+20 y+20, Refresh Interval (s):
+	Gui, Add, Text, xs10 y+20, Refresh Interval (s):
 	Gui, Add, Edit, x+5 w50 vMonitor_RefreshInterval, 60
 	Gui, Add, Radio, x+200 vMonitor_UseWebhook Group, Notify via Webhook
 	Gui, Add, Radio, x+40 Checked, Notify via Beeps
 	Gui, Add, Text, x+40, Beep Count:
 	Gui, Add, Edit, x+5 w40 vMonitor_BeepCount, 3
-	Gui, Add, Button, xm+10 y+20 vMonitor_Enable gMonitor_Enable, Enable
+	Gui, Add, Button, xs y+20 vMonitor_Enable gMonitor_Enable, Enable
 	Gui, Add, Button, x+30 vMonitor_Disable gMonitor_Disable Disabled, Disable
 	Gui, Add, Checkbox, x+40 vMonitor_OfflineMode gMonitor_Disable, Use Offline Mode (uses ETA instead of checking the Hangar - use only if NeoFly is closed. Not very accurate.)
 	
-	Gui, Add, Text, xm+10 y+20, Hangar:`t`t`tLast Checked:
+	Gui, Add, Text, xs y+20, Hangar:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HangarLastChecked, ---
-	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HangarLV Disabled -Multi
+	Gui, Add, ListView, xs y+10 w915 h200 vMonitor_HangarLV Disabled -Multi
 
-	Gui, Add, Text, xm+10 y+20, Hired Jobs:`t`t`tLast Checked:
+	Gui, Add, Text, xs y+20, Hired Jobs:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HiredLastChecked, ---
-	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled -Multi
+	Gui, Add, ListView, xs y+10 w915 h200 vMonitor_HiredLV Disabled -Multi
 }
 
 ; Gui Company Manager tab
 {
 	Gui, Tab, Company Manager
-	Gui, Add, GroupBox, xm+10 y70 w915 h265 Section, Finances
+	Gui, Add, GroupBox, x+20 y+10 w915 h265 Section, Finances
 	Gui, Add, Button, xs+10 ys+20 gCompany_Finances, View Finances
 	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
 	Gui, Add, Button, x+150 gCompany_ConsolidateLoans, Consolidate Loans
 	Gui, Add, Button, x+150 gCompany_CleanLoans, Clean Up Loans
 	Gui, Add, ListView, xs+10 y+10 w895 h200 Grid vCompany_FinancesLV -Multi
 	
-	Gui, Add, GroupBox, xm+10 y+20 w915 h125 Section, Hire Crew
+	Gui, Add, GroupBox, xs y+20 w915 h125 Section, Hire Crew
 	Gui, Add, Button, xs+10 ys+20 gCompany_CrewRefresh, Refresh
 	Gui, Add, Text, x+10, Duration:
 	Gui, Add, Edit, x+5 w30 vCompany_CrewDuration, 1
 	Gui, Add, Text, x+2, day(s)
 	Gui, Add, ListView, x+10 w400 h100 vCompany_CrewLV gCompany_CrewLVClick Grid -Multi
 	
-	Gui, Add, GroupBox, xm+10 y+20 w915 h225 Section, Dispatch
+	Gui, Add, GroupBox, xs y+20 w915 h225 Section, Dispatch
 	Gui, Add, ListView, xs+10 ys+20 w400 h150 vCompany_DispatchCrewLV Grid -Multi
 	Gui, Add, ListView, x+20 w400 h150 vCompany_DispatchPlanesLV Grid -Multi
 	Gui, Add, Text, x+10, Duration (hrs):
@@ -414,7 +414,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 ; Gui Flight Tools tab
 {
 	Gui, Tab, Flight Tools
-	Gui, Add, GroupBox, xm+10 y70 w915 h120, Descent Calculator
+	Gui, Add, GroupBox, x+20 y+10 w915 h120, Descent Calculator
 	
 	Gui, Add, Text, xp+20 yp+20 Section, Airport ICAO:
 	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO,
@@ -447,21 +447,20 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+40 gFlight_Skyvector, SkyVector Link
 	Gui, Font
 	
-	Gui, Add, GroupBox, xm+10 y+25 w915 h60, Stopwatch
+	Gui, Add, GroupBox, xs-20 y+25 w915 h60, Stopwatch
 	Gui, Font, s15
 	Gui, Add, Text, xp+20 yp+20 w200 Center vFlight_StopwatchDisplay, 0:00:00
 	Gui, Font
 	Gui, Add, Button, x+10 w60 vFlight_StopwatchStart gFlight_StopwatchStart, Start
 	Gui, Add, Button, x+20 w60 vFlight_StopwatchStop gFlight_StopwatchStop Disabled, Stop
 	
-	Gui, Add, GroupBox, xm+10 y+50 w915 h395 Section, Scratch Pad
+	Gui, Add, GroupBox, xs-20 y+50 w915 h395 Section, Scratch Pad
 	Gui, Font, s15
 	Gui, Add, Edit, xp+10 yp+20 w890 h300 vFlight_ScratchPad
 	Gui, Font
 	Gui, Add, Button, xs+100 y+10 w150 gFlight_SaveScratchPad, Save to File
 	Gui, Add, Button, x+400 w150 gFlight_LoadScratchPad, Load from File
 	Gui, Add, Text, xs+20 y+20, File path:	%scratchPadPath%
-	
 }
 
 ; Gui Debug tab
@@ -469,7 +468,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	If (debugFlag) {
 		GuiControl,,GUI_Tabs, Debug
 		Gui, Tab, Debug
-		Gui, Add, Button, xm+10 y90 w100 gDebug_Test, Test
+		Gui, Add, Button, x+10 y+30 w100 gDebug_Test Section, Test
 	}
 }
 
@@ -3036,7 +3035,7 @@ Company_Dispatch:
 	}
 	LV_GetText(CrewID, SelectedCrewRow, 1)
 	LV_GetText(CrewName, SelectedCrewRow, 2)
-	LV_GetText(CrewContractHrs, SelectedCrewRow, 3)
+	LV_GetText(CrewContractHrs, SelectedCrewRow, 4)
 	LV_GetText(CrewQualification, SelectedCrewRow, 5)
 	Gui, ListView, Company_DispatchPlanesLV
 	SelectedPlaneRow := LV_GetNext()
