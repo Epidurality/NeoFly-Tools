@@ -162,6 +162,8 @@ Simple flight tools for use in MSFS.
 1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Known Issues:
+- Automatic Dispatch doesn't seem to keep the planes flying while NeoFly is closed, even after restarting NeoFly. Not sure if this is something I have to account for, or part of the overall AI-flight bugginess in NeoFly.
+- If an automated dispatch is too short, plane will just boomerang around the destination and never land.
 - Localization of dates and number formats will continue to be an issue until all localization differences are accounted for.
     - Auto-Timestamp chooser when connecting to a database only looks at the newest few entries in the database. Some databases have multiple timestamp formats for the same field depending on NeoFly version used to create them. Manually check your DB if you still have issues.
     - Auto-Timestamp chooser basically doesn't work with brand-new databases, since the Markets are not populated yet so there are no dates to check.
@@ -201,6 +203,7 @@ Please use the GitHub "Issues" feature to request any new features or improvemen
 - Added Dispatch tool in *Company Manager*
 - Removed *Debug* tab (that wasn't supposed to stay there...)
 - Fixed some GUI positioning stuff.
+- Fixed a couple bugs with the Dispatch tool.
 
 ### v0.7.0
 - Added a Flight Tools tab for common flight calculations.

@@ -376,7 +376,9 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Button, x+30 vMonitor_Disable gMonitor_Disable Disabled, Disable
 	Gui, Add, Checkbox, x+40 vMonitor_OfflineMode gMonitor_Disable, Use Offline Mode (uses ETA instead of checking the Hangar - use only if NeoFly is closed. Not very accurate.)
 	
-	Gui, Add, Text, xs y+20, Hangar:`t`t`tLast Checked:
+	Gui, Add, Text, xs y+20, Hangar:
+	Gui, Add, Button, x+200 gMonitor_Check Disabled vMonitor_CheckNow, Check Now
+	Gui, Add, Text, x+50, Last Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HangarLastChecked, ---
 	Gui, Add, ListView, xs y+10 w915 h200 vMonitor_HangarLV Disabled -Multi
 
@@ -2512,6 +2514,7 @@ Monitor_Check:
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Monitor_UseWebhook
 	GuiControlGet, Monitor_BeepCount
+	; Online mode
 	If !(Monitor_OfflineMode) {
 		; Get Available hangar planes
 		qPilotID := Pilot.id
@@ -2574,7 +2577,7 @@ Monitor_Check:
 		FormatTime, currTime, , yyyy-MM-dd HH:mm:ss
 		GuiControl, Text, Monitor_HangarLastChecked, % currTime
 	}
-	; Get active hired missions
+	; Refresh the active hired missions
 	qDateStart := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "rj.dateStart")
 	MonitorHiredQuery =
 	(
@@ -2617,15 +2620,20 @@ Monitor_Check:
 				If (MonitorHiredRow[1] = oldID) { ; This is the same job
 					LV_GetText(oldTR, A_Index, 11)
 					If (MonitorHiredRow[11]<=0 && oldTR>0) { ; Job has transitioned from time remaining to time elapsed
-						postMessage := MonitorHiredRow[6] . " should be at " . MonitorHiredRow[5] . " with the " . MonitorHiredRow[2] . " " . MonitorHiredRow[12] " (#" . MonitorHiredRow[1] . ")"
-						postdata =
-						(
-						{
-							"username": "NeoFly Tools",
-							"content": "%postMessage%"
+						If (Monitor_UseWebhook) {
+							postMessage := MonitorHiredRow[6] . " should be at " . MonitorHiredRow[5] . " with the " . MonitorHiredRow[2] . " " . MonitorHiredRow[12] " (#" . MonitorHiredRow[1] . ")"
+							postdata =
+							(
+							{
+								"username": "NeoFly Tools",
+								"content": "%postMessage%"
+							}
+							)
+							Webhook_PostSend(Monitor_URL, postdata)
+						} else {
+							Monitor_BeepsRemaining := Monitor_BeepCount
+							SetTimer, Monitor_Beep, 500
 						}
-						)
-						Webhook_PostSend(Monitor_URL, postdata)
 					}
 				}
 				break ; Can break the LV loop since we found the ID.
@@ -2649,6 +2657,7 @@ Monitor_Enable:
 	GuiControl, Disable, Monitor_RefreshInterval
 	GuiControl, Enable, Monitor_Disable
 	GuiControl, Enable, Monitor_HiredLV
+	GuiControl, Enable, Monitor_CheckNow
 	GuiControlGet, Monitor_OfflineMode
 	GuiControlGet, Monitor_RefreshInterval
 	If !(Monitor_OfflineMode) {
@@ -2670,6 +2679,7 @@ Monitor_Disable:
 	GuiControl, Enable, Monitor_Enable
 	GuiControl, Enable, Monitor_RefreshInterval
 	GuiControl, Disable, Monitor_Disable
+	GuiControl, Disable, Monitor_CheckNow
 	GuiControl, Text, Monitor_HangarLastChecked, ---
 	GuiControl, Text, Monitor_HiredLastChecked, ---
 	LV_Clear("Monitor_HangarLV")
@@ -3044,6 +3054,7 @@ Company_Dispatch:
 		return
 	}
 	LV_GetText(PlaneID, SelectedPlaneRow, 1)
+	LV_GetText(PlaneTail, SelectedPlaneRow, 2)
 	LV_GetText(PlanePayload, SelectedPlaneRow, 5)
 	LV_GetText(PlaneLocation, SelectedPlaneRow, 6)
 	LV_GetText(PlaneQualification, SelectedPlaneRow, 9)
@@ -3056,7 +3067,7 @@ Company_Dispatch:
 		MsgBox Crew member is not available for the full duration.
 		return
 	}
-	; Find ICAO
+	; Find return ICAO
 	ReturnICAOQuery =
 	(
 		SELECT a.lonx, a.laty FROM airport AS a
@@ -3072,45 +3083,82 @@ Company_Dispatch:
 		return
 	}
 	ReturnICAOResult.GetRow(1, ReturnICAORow)
+	latDest := ReturnICAORow[2]
+	lonDest := ReturnICAORow[1]
+	latOffset := 1
+	; Find suitable departure ICAO
+	DepICAOQuery =
+	(
+		SELECT a.lonx, a.laty, a.ident, MIN(ABS(a.lonx-(%lonDest%)) + ABS(a.laty-(%latDest%)+(%latOffset%))) AS coordDiff
+		FROM airport AS a
+		GROUP BY a.ident
+		ORDER BY coordDiff ASC
+		LIMIT 1
+	)
+	If !(DepICAOResult := SQLiteGetTable(DB, DepICAOQuery)) {
+		return
+	}
+	If (DepICAOResult.RowCount<1) {
+		MsgBox Could not find information for suitable departure ICAO for hired mission.
+		return
+	}
+	DepICAOResult.GetRow(1, DepICAORow)
+	latDep := DepICAORow[2]
+	lonDep := DepICAORow[1]
+	icaoDep := DepICAORow[3]
 	; Calculate distances and payment
 	incomePerMile := 100
 	incomePerPayloadPerMile := 0.20
-	estimatedDistance := PlaneSpeed * Company_DispatchDuration
-	estimatedPay := ROUND(estimatedDistance*(incomePerMile + incomePerPayloadPerMile*PlanePayload),0)
-	; At the moment it appears NeoFly takes into account the CurrentLat/CurrentLon, and the Destination ICAO in order to calculate where the hired plane is/should be along its trip.
-	currentLat := ReturnICAORow[2] + 1 ; This will be 60nm away.
-	currentLon := ReturnICAORow[1]
-	latDest := ReturnICAORow[2]
-	lonDest := ReturnICAORow[1]
-	qMissionSpeed := 60.0/Company_DispatchDuration
+	estimatedDistance := ROUND(DistanceFromCoord(lonDep, latDep, lonDest, latDest))
+	estimatedPay := ROUND(PlaneSpeed*Company_DispatchDuration*(incomePerMile + incomePerPayloadPerMile*PlanePayload),0)
+	qMissionSpeed := ROUND(estimatedDistance/Company_DispatchDuration,2)
+	qCanJumpMissionID := 0 ; "(SELECT id FROM canJumpMissions ORDER BY id DESC LIMIT 1)"
+	qInfo := "" ; "NFT Dispatch "
+	qMissionType := 2 ; 2=Cargo
+	qStatus := 2 ; 2=In flight
 	
-	MsgBox, 36, Confirm Dispatch, % "Plane and crew member will be unavailable for " . Company_DispatchDuration . "hr(s), but will provide " . prettyNumbers(estimatedPay, true) . " of income once complete.`n`nNOTES:`n- You will need to restart NeoFly for it to update initially; once you can see the flights are moving, NeoFly will continue as normal.`n- Do NOT jump to the mission, as it will cause a crash.`n- DO NOT double-click the AI plane, as it will cause a crash."
+	infoPrettyPayment := prettyNumbers(estimatedPay, true)
+	infoText =
+	(
+%PlaneTail% and %CrewName% will be sent on a roughly %Company_DispatchDuration%hr mission from %icaoDep% to %PlaneLocation%. Payment upon mission completion will be %infoPrettyPayment%.
+		
+YOU MUST RESTART NEOFLY AFTER PERFORMING THESE ACTIONS. Otherwise, NeoFly will not grab the mission and statuses from the database, and you may cause conflicts.
+		
+Other notes:
+- Double-clicking the hired mission or plane in the map view will cause NeoFly to crash.
+- Trying to jump into this hired mission will cause NeoFly to crash.
+- If you close and re-open NeoFly, the progress for the mission will appear to reset. It's inconsistent, but after the total time has elapsed, the mission should finish when restarting NeoFly.
+
+Are you sure you want to continue?
+	)
+		
+	MsgBox, 36, Confirm Dispatch, % infoText
 	IfMsgBox Yes
 	{
 		; Other query vars
 		qNowTimestamp := TimestampFormat(A_Now, true)
-		qZeroTimestamp := TimestampFormat(16010101000000, true)
+		qZeroTimestamp := TimestampFormat(0, true) ;  ; TimestampFormat(16010101000000, true)
 		qPilotID := Pilot.ID
 		RentJobInsertQuery = 
 		(
 			INSERT INTO rentJob (id, status, departure, destination, pay, missiontype, aircraftID, distance, speed, dateStart, dateEnd, owner, currentLat, currentLon, cjmID, info, pilotName, latDest, lonDest)
 			VALUES (
 				(SELECT id FROM rentJob ORDER BY id DESC LIMIT 1)+1,
-				2,
-				'ZZZZ',
+				%qStatus%,
+				'%icaoDep%',
 				'%PlaneLocation%',
 				%estimatedPay%,
-				2,
+				%qMissionType%,
 				%PlaneID%,
 				%estimatedDistance%,
 				%qMissionSpeed%,
 				'%qNowTimestamp%',
 				'%qZeroTimestamp%',
 				%qPilotID%,
-				%currentLat%,
-				%currentLon%,
-				(SELECT id FROM canJumpMissions ORDER BY id DESC LIMIT 1),
-				'NFT Dispatch ',
+				%latDep%,
+				%lonDep%,
+				%qCanJumpMissionID%,
+				'%qInfo%',
 				'%CrewName%',
 				%latDest%,
 				%lonDest%);
@@ -3252,7 +3300,8 @@ Flight_LoadScratchPad:
 ; == Debug Tab Subroutines
 Debug_Test:
 {
-	MsgBox % DB._Path
+	MsgBox % TimestampFormat(0) . ", " . TimestampFormat(A_Now)
+	MsgBox % TimestampFormat(0, true) . ", " . TimestampFormat(A_Now, true)
 	return
 }
 
@@ -3303,6 +3352,7 @@ SQLiteExecute(database, query) {
 
 SQLitePreviewTable(Table) {
 	global Preview_LV
+	Table.Reset()
 	Gui, Preview:Destroy
 	Gui, Preview:New
 	Gui, Preview:Default
@@ -3533,9 +3583,22 @@ TimestampFormat(timestampToFormat, force24 = false) {
 	} else {
 		timestampFormat := dateFormat . " " . timeFormat
 	}
-	FormatTime, returnText, %timestampToFormat%, %timestampFormat%
+	If (timestampToFormat=0) { ; If user wants a "0" time, have to manually return the string since FormatTime can only do year=1601 or later
+		StringCaseSense, On
+		returnText := StrReplace(timestampFormat, "HH", "00")
+		returnText := StrReplace(returnText, "h", "12")
+		returnText := StrReplace(returnText, "mm", "00")
+		returnText := StrReplace(returnText, "ss", "00")
+		returnText := StrReplace(returnText, "yyyy", "0001")
+		returnText := StrReplace(returnText, "MM", "01")
+		returnText := StrReplace(returnText, "dd", "01")
+		returnText := StrReplace(returnText, "tt", "AM")
+		StringCaseSense, Off
+	} else {
+		FormatTime, returnText, %timestampToFormat%, %timestampFormat%
+	}
 	return returnText
-}		
+}
 
 ; NOTES RE DATE FORMATS
 /*
