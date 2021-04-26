@@ -5,7 +5,7 @@
 ; Tested on:        Windows 10 64-bit
 ; Author:           Epidurality
 
-versionNumber := "0.7.0"
+versionNumber := "0.8.0"
 updateLink := "https://github.com/Epidurality/NeoFly-Tools/"
 
 ; AHK Settings
@@ -55,7 +55,7 @@ IniRead, autoMarketHotkey, %iniPath%, Setup, autoMarketHotkey, NumpadEnter
 IniRead, autoMarketStopHotkey, %iniPath%, Setup, autoMarketStopHotkey, NumpadSub
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
 IniRead, discordWebhookURL, %iniPath%, Setup, discordWebhookURL, https://discord.com/api/webhooks/[YourWebhookKeyHere]
-IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
+IniRead, debugFlag, %iniPath%, Debug, debugFlag, 0
 }
 
 ; ==== Main GUI ====
@@ -110,39 +110,39 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Main:Default
 	Gui, Tab, Settings
 	; NOTE: The "always on top" checkbox is going to be under the Settings stuff for organizational purposes, but must be created before the tabs in the Gui Setup
-	Gui, Add, Text, xm+10 y70, Database path:
+	Gui, Add, Text, x+20 y+10 Section, Database path:
 	Gui, Add, Edit, x+10 w300 vSettings_DBPath, % defaultDbPath
 	Gui, Add, Button, x+20 gSettings_Connect, Connect
 	Gui, Add, Button, x+40 gSettings_Disconnect, Disconnect
 	Gui, Add, Text, x+50, NeoFly Tools Version: v%versionNumber%`nUpdates available at`n`t%updateLink%
 
-	Gui, Add, Button, xm+10 y+10 gSettings_Backup, Backup Database
+	Gui, Add, Button, xs y+10 gSettings_Backup, Backup Database
 	Gui, Add, Text, R2 x+10 w600, Always backup your database before using this tool for the first time, or after updates.
 
-	Gui, Add, Text, xm+10 y+30, Selected Pilot:
+	Gui, Add, Text, xs y+30, Selected Pilot:
 	Gui, Add, Text, x+10 vSettings_Pilot, Connect to a database to get pilot information.
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick -Multi
-	Gui, Add, Text, xm+10 y+20,
+	Gui, Add, ListView, xs y+10 w915 h100 Grid vSettings_PilotLV gSettings_PilotLVClick -Multi
+	Gui, Add, Text, xs y+20,
 	(
 	Notes:
 	Missions, Goods Market, and Aircraft Market are shared between Pilots.
 	Selecting a pilot here effectively just filters your Hangar in the Goods Optimizer.
 	The current NeoFly pilot will be used by default when you Connect to the database.
 	)
-	Gui, Add, Text, xm+10 y+40 w200, Mission.Expiration format:
+	Gui, Add, Text, xs y+40 w200, Mission.Expiration format:
 	Gui, Add, DropDownList, x+10 w200 vSettings_MissionDateFormat, %dateFormats%
-	Gui, Add, Text, xm+10 y+10 w200, GoodsMarket.RefreshDate format:
+	Gui, Add, Text, xs y+10 w200, GoodsMarket.RefreshDate format:
 	Gui, Add, DropDownList, x+10 w200 vSettings_GoodsDateFormat, %dateFormats%
 	Gui, Add, Button, x+20 w150 y+-40 gSettings_TimestampPreview, Preview These Settings
-	Gui, Add, Text, xm+10 y+25, Note: The '/' can be any character and leading zeroes don't matter, for example: yyyy.m.d format will work when using yyyy/mm/dd option. Use the button above to double-check.`nNote: Missions and Goods may use different formats depending on your locale.
-	Gui, Add, Text, xm+10 y+20, Date Formatting Samples from Database:`t`t`tNote: These dates are drawn from the Missions and GoodsMarket tables, so you must have data in them.
-	Gui, Add, ListView, xm+10 y+10 w915 h150 Count1000 vSettings_TimestampLV -Multi
+	Gui, Add, Text, xs y+25, Note: The '/' can be any character and leading zeroes don't matter, for example: yyyy.m.d format will work when using yyyy/mm/dd option. Use the button above to double-check.`nNote: Missions and Goods may use different formats depending on your locale.
+	Gui, Add, Text, xs y+20, Date Formatting Samples from Database:`t`t`tNote: These dates are drawn from the Missions and GoodsMarket tables, so you must have data in them.
+	Gui, Add, ListView, xs y+10 w915 h150 Count1000 vSettings_TimestampLV -Multi
 }
 
 ; GUI Goods Optimizer tab
 {
 	Gui, Tab, Goods Optimizer
-	Gui, Add, Text, xm+10 R2 y70, Departure`nICAO:
+	Gui, Add, Text, x+20 y+10 R2 Section, Departure`nICAO:
 	Gui, Add, Edit, x+5 w50 h25 vGoods_DepartureICAO,
 	Gui, Add, Text, R2 x+20, Arrival`nICAO:
 	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_ArrivalICAO, ---
@@ -153,24 +153,24 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Text, R2 x+20, Onboard`nGoods (lbs):
 	Gui, Add, Edit, x+5 w50 h25 Disabled vGoods_OnboardCargo, ---
 	
-	Gui, Add, Button, x+30 y70 w150 gGoods_RefreshHangar, Refresh Hangar
+	Gui, Add, Button, x+30 ys w150 gGoods_RefreshHangar, Refresh Hangar
 	Gui, Add, CheckBox, x+30 y+-15 vGoods_HangarAll gGoods_RefreshHangar, Show All Planes
-	Gui, Add, Text, xm+350 y+10 vGoods_Hangar, Hangar:
-	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_RefreshMissions, Auto-Manage Options
+	Gui, Add, Text, xs+340 y+10 vGoods_Hangar, Hangar:
+	Gui, Add, Checkbox, x+40 vGoods_ManageOptions gGoods_RefreshMissions Checked, Auto-Manage Options
 	Gui, Add, Checkbox, x+100 vGoods_IgnoreOnboardCargo gGoods_RefreshHangar, Ignore Onboard Cargo
-	Gui, Add, ListView, xm+350 y+10 w575 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
+	Gui, Add, ListView, xs+340 y+10 w570 h100 Grid vGoods_HangarLV gGoods_HangarLVClick -Multi
 
-	Gui, Add, Button, xm+100 y105 h20 w150 gSummary_Show, Summary / AutoBuy
-	Gui, Add, Text, xm+20 y+5 w50 h15, Aircraft:
+	Gui, Add, Button, xs+100 ys+35 h20 w150 gSummary_Show, Summary / AutoBuy
+	Gui, Add, Text, xs+20 y+5 w50 h15, Aircraft:
 	Gui, Add, Text, x+10 w250 hp vGoods_PlaneInfo, Double click a plane in the Hangar to select it
-	Gui, Add, Text, xm+20 y+10 w50 hp, Fuel:
+	Gui, Add, Text, xs+20 y+10 w50 hp, Fuel:
 	Gui, Add, Text, x+10 w250 hp vGoods_FuelInfo, ---
-	Gui, Add, Text, xm+20 y+10 w50 hp, Payload:
+	Gui, Add, Text, xs+20 y+10 w50 hp, Payload:
 	Gui, Add, Text, x+10 w250 hp vGoods_PayloadInfo, ---
-	Gui, Add, Text, xm+20 y+10 w50 hp, Mission:
+	Gui, Add, Text, xs+20 y+10 w50 hp, Mission:
 	Gui, Add, Text, x+10 w250 hp vGoods_MissionInfo, ---
 
-	Gui, Add, Text, xm+70 y+10, Arrival Requirements:
+	Gui, Add, Text, xs+50 y+10, Arrival Requirements:
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalILS gGoods_RefreshMissions, ILS
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalApproach gGoods_RefreshMissions, Approach
 	Gui, Add, Checkbox, x+20 vGoods_ArrivalLights gGoods_RefreshMissions, Rwy Lights
@@ -181,7 +181,7 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Edit, x+10 w50 vGoods_ArrivalRwyLen, 0
 	Gui, Add, Checkbox, x+5 vGoods_AutoRwyLen Checked, Auto
 
-	Gui, Add, Button, xm+10 y+10 gGoods_RefreshMissions, Refresh Missions
+	Gui, Add, Button, xs y+10 gGoods_RefreshMissions, Refresh Missions
 	Gui, Add, Text, x+20, Goods Filters:
 	Gui, Add, CheckBox, x+20 vGoods_IncludeIllicit gGoods_RefreshMissions, Illicit
 	Gui, Add, Checkbox, x+20 vGoods_IncludeFragile Checked gGoods_RefreshMissions, Fragile
@@ -194,83 +194,87 @@ IniRead, debugFlag, %iniPath%, Debug, debugFlag, false
 	Gui, Add, Edit, x+2 vGoods_MaxRange w40 h20, 9999
 	Gui, Add, Checkbox, x+5 vGoods_AutoMaxRange Checked, Auto
 	
-	Gui, Add, Text, xm+10 y+20, NeoFly Missions:
+	Gui, Add, Text, xs y+20, NeoFly Missions:
 	Gui, Add, Text, x+5 w500 vGoods_MissionsText,
 	Gui, Add, Checkbox, x+10 gGoods_ToggleTradeMissions vGoods_ShowTradeMissions Checked, Show Trade/Transit Missions
 	Gui, Add, Checkbox, x+10 gGoods_RefreshMissions vGoods_ShowAllNFMissions, Show Missions w/o Trades
 	Gui, Add, ListView, xm+10 y+10 w915 h125 Count100 Grid vGoods_MissionsLV gGoods_MissionsLVClick -Multi
 
-	Gui, Add, Text, xm+10 y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
+	Gui, Add, Text, xs y+10 vGoods_TradeMissionsPreText, Trade / Transit Missions:
 	Gui, Add, Text, x+5 w500 vGoods_TradeMissionsText, 
 	Gui, Add, ListView, xm+10 y+10 w915 h100 Count500 Grid vGoods_TradeMissionsLV gGoods_TradeMissionsLVClick -Multi
 
-	Gui, Add, Text, xm+10 y+10 vGoods_Trades, Optimal Goods:
+	Gui, Add, Text, xs y+10 vGoods_Trades, Optimal Goods:
 	Gui, Add, Text, x+5 w300 vGoods_OptimalGoodsText,
 	Gui, Font, cRed
 	Gui, Add, Text, x+10 w500 vGoods_WarningText
 	Gui, Font
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGoods_TradesLV -Multi
+	Gui, Add, ListView, xs y+10 w915 h100 Grid vGoods_TradesLV -Multi
 }
 
 ; GUI Auto-Market
 {
 	Gui, Tab, Auto-Market
-	Gui, Add, Text, xm+10 y70, Center ICAO:
-	Gui, Add, Edit, x+10 w50 vAuto_CenterICAO, KJFK
+	Gui, Add, Text, x+20 y+10 Section, Center ICAO:
+	Gui, Add, Edit, x+10 w50 vAuto_CenterICAO,
+	Gui, Add, Text, x+30, Min. Distance
+	Gui, Add, Edit, x+10 w75 vAuto_MinDistance, 0
 	Gui, Add, Text, x+30, Max. Distance
-	Gui, Add, Edit, x+10 w75 vAuto_MaxDistance, 100
+	Gui, Add, Edit, x+10 w75 vAuto_MaxDistance, 50
+	Gui, Add, DropDownList, x+30 w175 gAuto_DistanceDropDown vAuto_DistanceDropDown AltSubmit, Bush: 0 to 50||Small Trip: 50 to 300|Short haul: 300 to 1000|Medium haul: 1000 to 3000|Long Haul: >3000|All
+	Gui, Add, DropDownList, x+20 w100 vAuto_MissionType, Any||Pax|Cargo|Mail|Sensitive cargo|VIP pax|Secret pax|Airline
 	
-	Gui, Add, Button, xm+10 y+20 gAuto_List, List ICAOs
+	Gui, Add, Button, xs y+20 gAuto_List, List ICAOs
 	Gui, Add, Text, x+40, 
 	(
 List is generated by using active Missions at the Center ICAO as a list of viable market destinations, and filters out ones with already valid markets.
 If no ICAOs are showing, try Searching or Resetting your Missions at the Center ICAO.
 	)
 	
-	Gui, Add, Text, xm+10 y+20, ICAOs to Search:
-	Gui, Add, ListView, xm+10 y+10 w915 h300 vAuto_ListLV
+	Gui, Add, Text, xs y+20, ICAOs to Search:
+	Gui, Add, ListView, xs y+10 w915 h300 vAuto_ListLV
 	
-	Gui, Add, Button, xm+10 y+20 gAuto_Load, Load for Entry
+	Gui, Add, Button, xs y+20 gAuto_Load, Load for Entry
 	Gui, Add, Button, x+30 gAuto_Unload, Stop Entry
 	Gui, Add, Button, x+30 gAuto_AutoEntry, Auto Entry
 	Gui, Add, Checkbox, x+30 vAuto_IgnoreWindow, Ignore Active Window Check`n(only use if script is not properly detecting that NeoFly is the active window)
 	Gui, Add, Text, x+10, Delay in Auto Entry (ms):
-	Gui, Add, Edit, x+5 vAuto_Delay, 1500
+	Gui, Add, Edit, x+5 vAuto_Delay, 500
 	
 	Gui, Font, Bold
-	Gui, Add, Text, xm+10 y+30, Please read the included Readme for instructions on using this part of the tool.
+	Gui, Add, Text, xs y+30, Please read the included Readme for instructions on using this part of the tool.
 	Gui, Font
 }
 
 ; GUI Market Finder tab
 {
 	Gui, Tab, Market Finder
-	Gui, Add, Text, xm+10 y70 w50, Name:
+	Gui, Add, Text, x+20 y+10 w50 Section, Name:
 	Gui, Add, ComboBox, x+10 w200 vMarket_Name, ||Beer|Caviar|Cigarette|Clothes|Coffee|Computer|Contraband Cigars|Fish|Flower|Fruit|Fuel|Magazine|Meat|Mechanical parts|Medicine|Old wine|Phone|Pillza|Vegetable|Whiskey
 	Gui, Add, Text, x+20 yp+5, I want to
 	Gui, Add, Radio, x+10 yp-5 vMarket_RadioBuy, Buy
 	Gui, Add, Radio, y+10 Checked vMarket_RadioSell, Sell
 	Gui, Add, Text, x+40 y+-30, Show`nDistance From:
-	Gui, Add, Edit, x+10 w75 vMarket_DepartureICAO, KJFK
+	Gui, Add, Edit, x+10 w75 vMarket_DepartureICAO,
 	Gui, Add, Text, x+20, Show Goods`nOnly At:
 	Gui, Add, Edit, x+10 w75 vMarket_FilterICAO,
 
-	Gui, Add, Text, xm+10 y+10 w300, Leave the Name field blank to search for goods of any name.
+	Gui, Add, Text, xs y+10 w300, Leave the Name field blank to search for goods of any name.
 
-	Gui, Add, Text, xm+10 y+20 w50, Type(s):
+	Gui, Add, Text, xs y+20 w50, Type(s):
 	Gui, Add, CheckBox, x+10 Checked vMarket_Normal, Normal
 	Gui, Add, CheckBox, y+10 Checked vMarket_Fragile, Fragile
 	Gui, Add, CheckBox, y+10 Checked vMarket_Perishable, Perishable
 	Gui, Add, CheckBox, y+10 Checked vMarket_Illicit, Illicit
 
-	Gui, Add, Text, xm+10 y+20 w50, Minimum Price:
+	Gui, Add, Text, xs y+20 w50, Minimum Price:
 	Gui, Add, Edit, x+10 w50 vMarket_MinimumPrice, 0
 	Gui, Add, Text, x+30 w50, Maximum Price:
 	Gui, Add, Edit, x+10 w50 vMarket_MaximumPrice, 9999
 	Gui, Add, Button, x+100 w100 gMarket_Search, Search
 	
 
-	Gui, Add, Text, xm+10 y+10, Markets:
+	Gui, Add, Text, xs y+10, Markets:
 	Gui, Add, Text, x+10 w500 vMarket_MarketsText, Press Search to display relevant markets
 	Gui, Add, ListView, xm+10 y+10 w915 h400 Grid vMarket_MarketLV -Multi
 }
@@ -278,28 +282,28 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 ; GUI Aircraft Market tab
 {
 	Gui, Tab, Aircraft Market
-	Gui, Add, Text, xm+10 y70, Aircraft Name (or part of name) as seen in NeoFly database:
+	Gui, Add, Text, x+20 y+10 Section, Aircraft Name (or part of name) as seen in NeoFly database:
 	Gui, Add, Edit, w300 vAircraftMarket_Aircraft, Cessna
 	Gui, Add, Button, x+20 w100 gAircraftMarket_Search, Search
 	Gui, Add, Button, x+150 gAircraftMarket_Compare, Compare Models
-	Gui, Add, Text, xm+10 y+20, Matching Aircraft:
+	Gui, Add, Text, xs y+20, Matching Aircraft:
 	Gui, Add, Text, x+10 w500 vAircraftMarket_AircraftText, Press Search to find aircraft in the market
-	Gui, Add, ListView, xm+10 y+10 w915 h450 Grid vAircraftMarket_LV -Multi
-	Gui, Add, Text, xm+10 y+20, Note: Travel Cost represents a one-way trip from your pilot's current location to the plane's Location.
-	Gui, Add, Text, xm+10 y+20, % "Other Note: Effective Payload is the payload of the plane after subtracting the Pilot's weight (" . Pilot.weight . "lbs) and " . ROUND(fuelPercentForAircraftMarketPayload*100,0) . "% of max fuel."
+	Gui, Add, ListView, xs y+10 w915 h450 Grid vAircraftMarket_LV -Multi
+	Gui, Add, Text, xs y+20, Note: Travel Cost represents a one-way trip from your pilot's current location to the plane's Location.
+	Gui, Add, Text, xs y+20, % "Other Note: Effective Payload is the payload of the plane after subtracting the Pilot's weight (" . Pilot.weight . "lbs) and " . ROUND(fuelPercentForAircraftMarketPayload*100,0) . "% of max fuel."
 }
 
 ; GUI Mission Generator tab
 {
 	Gui, Tab, Mission Generator
-	Gui, Add, Text, xm+10 y70, Departure ICAO:
+	Gui, Add, Text, x+20 y+10 Section, Departure ICAO:
 	Gui, Add, Edit, x+10 w50 vGenerator_departure, KJFK
 	Gui, Add, Text, x+30, Arrival:
 	Gui, Add, Edit, x+10 w200 vGenerator_arrival, KLAX
 	Gui, Add, Text, x+30, Expiration:
 	Gui, Add, Edit, x+10 w150 vGenerator_expiration,
 
-	Gui, Add, Text, xm+10 y+20, Mission Type:
+	Gui, Add, Text, xs y+20, Mission Type:
 	Gui, Add, DropDownList, x+10 vGenerator_missionTypeS, Pax||Cargo|Mail|Sensitive cargo|VIP pax|Secret pax|Emergency|Illicit cargo|tourists ; Airline and Humanitarian missions removed until they work
 	Gui, Add, Text, x+30, Minimum Rank:
 	Gui, Add, DropDownList, x+10 vGenerator_rankS, Cadet||Second Officer|First Officer|Captain|Senior Captain
@@ -308,141 +312,163 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Text, x+30, Cargo(lbs):
 	Gui, Add, Edit, x+10 w50 vGenerator_weight, 510
 
-	Gui, Add, Text, xm+10 y+20, Request:
+	Gui, Add, Text, xs y+20, Request:
 	Gui, Add, Edit, x+10 w400 vGenerator_request, This shows up in the mission selection screen of NeoFly
 	Gui, Add, Text, x+30, Tooltip Text:
 	Gui, Add, Edit, x+10 w200 vGenerator_misstoolTip, ToolTip over the mission on the map
 
-	Gui, Add, Text, xm+10 y+20, Reward:
+	Gui, Add, Text, xs y+20, Reward:
 	Gui, Add, Edit, x+10 w75 vGenerator_reward, 12500
 	Gui, Add, Text, x+30, XP:
 	Gui, Add, Edit, x+10 w50 vGenerator_xp, 65
 
-	Gui, Add, Button, xm+10 y+20 gGenerator_FindLatLon, Find Lat/Lon
+	Gui, Add, Button, xs y+20 gGenerator_FindLatLon, Find Lat/Lon
 	Gui, Add, Text, x+10, For Drop Zone and Tourist missions, Arrival Lat/Lon must be entered manually. Try www.gps-coordinates.net
 
-	Gui, Add, Text, xm+10 y+20 w100, Departure Lat:
+	Gui, Add, Text, xs y+20 w100, Departure Lat:
 	Gui, Add, Edit, x+10 w200 vGenerator_latDep,
 	Gui, Add, Text, x+30 w60, Arrival Lat:
 	Gui, Add, Edit, x+10 w200 vGenerator_latArriv,
 
-	Gui, Add, Text, xm+10 y+10 w100, Departure Lon:
+	Gui, Add, Text, xs y+10 w100, Departure Lon:
 	Gui, Add, Edit, x+10 w200 vGenerator_lonDep,
 	Gui, Add, Text, x+30 w60, Arrival Lon:
 	Gui, Add, Edit, x+10 w200 vGenerator_lonArriv,
 
-	Gui, Add, Button, xm+10 y+10 gGenerator_Distance, Calculate Distance
+	Gui, Add, Button, xs y+10 gGenerator_Distance, Calculate Distance
 	Gui, Add, Text, x+20, Distance (nm):
 	Gui, Add, Edit, x+5 w100 vGenerator_dist, 100
 	Gui, Add, Text, x+20, Heading (degrees):
 	Gui, Add, Edit, x+5 w60 vGenerator_hdg, 0
 
-	Gui, Add, Text, xm+10 y+20, Missions to Generate:
+	Gui, Add, Text, xs y+20, Missions to Generate:
 	Gui, Add, Edit, x+10 w50 vGenerator_Quantity, 1
 	Gui, Add, CheckBox, x+10 vGenerator_RandomizePax, Randomize Pax
 	Gui, Add, CheckBox, x+10 vGenerator_RandomizeWeight, Randomize Weight
 	Gui, Add, CheckBox, x+10 vGenerator_RandomizeReward, Randomize Reward
 	Gui, Add, Text, x+20 w225, NOTE: Randimization will be proportional, and uses entered values as maximums.
 
-	Gui, Add, Button, xm+10 y+30 gGenerator_Preview, Generate Missions
+	Gui, Add, Button, xs y+30 gGenerator_Preview, Generate Missions
 
-	Gui, Add, Text, xm+10 y+10, Generated Mission Previews:
+	Gui, Add, Text, xs y+10, Generated Mission Previews:
 
-	Gui, Add, ListView, xm+10 y+10 w915 h100 Grid vGenerator_PreviewLV gGenerator_PreviewLVClick
+	Gui, Add, ListView, xs y+10 w915 h100 Grid vGenerator_PreviewLV gGenerator_PreviewLVClick
 
-	Gui, Add, Text, xm+10 y+10, Double-click a row to commit it to the database. IDs added:
+	Gui, Add, Text, xs y+10, Double-click a row to commit it to the database. IDs added:
 	Gui, Add, Edit, x+10 vscroll +readonly w150 h40 vGenerator_AddedIDs,
 
-	Gui, Add, Text, xm+10 y+10 R2, Warning: this can only be reversed by deleting the entry in the database. Recommend noting the generated IDs so that it's easy to find and remove if it causes issues with NeoFly.
+	Gui, Add, Text, xs y+10 R2, Warning: this can only be reversed by deleting the entry in the database. Recommend noting the generated IDs so that it's easy to find and remove if it causes issues with NeoFly.
 }
 
 ; Gui Monitor Hangar tab
 {
 	Gui, Tab, Monitor Hangar
-	Gui, Add, Text, xm+10 y70, Discord Webhook URL:
+	Gui, Add, Text, x+20 y+10 Section, Discord Webhook URL:
 	Gui, Add, Edit, x+10 w780 vMonitor_URL, % discordWebhookURL
 	
-	Gui, Add, Text, xm+20 y+20, Refresh Interval (s):
+	Gui, Add, Text, xs10 y+20, Refresh Interval (s):
 	Gui, Add, Edit, x+5 w50 vMonitor_RefreshInterval, 60
 	Gui, Add, Radio, x+200 vMonitor_UseWebhook Group, Notify via Webhook
 	Gui, Add, Radio, x+40 Checked, Notify via Beeps
 	Gui, Add, Text, x+40, Beep Count:
 	Gui, Add, Edit, x+5 w40 vMonitor_BeepCount, 3
-	Gui, Add, Button, xm+10 y+20 vMonitor_Enable gMonitor_Enable, Enable
+	Gui, Add, Button, xs y+20 vMonitor_Enable gMonitor_Enable, Enable
 	Gui, Add, Button, x+30 vMonitor_Disable gMonitor_Disable Disabled, Disable
 	Gui, Add, Checkbox, x+40 vMonitor_OfflineMode gMonitor_Disable, Use Offline Mode (uses ETA instead of checking the Hangar - use only if NeoFly is closed. Not very accurate.)
 	
-	Gui, Add, Text, xm+10 y+20, Hangar:`t`t`tLast Checked:
+	Gui, Add, Text, xs y+20, Hangar:
+	Gui, Add, Button, x+200 gMonitor_Check Disabled vMonitor_CheckNow, Check Now
+	Gui, Add, Text, x+50, Last Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HangarLastChecked, ---
-	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HangarLV Disabled -Multi
+	Gui, Add, ListView, xs y+10 w915 h200 vMonitor_HangarLV Disabled -Multi
 
-	Gui, Add, Text, xm+10 y+20, Hired Jobs:`t`t`tLast Checked:
+	Gui, Add, Text, xs y+20, Hired Jobs:`t`t`tLast Checked:
 	Gui, Add, Text, x+10 w600 vMonitor_HiredLastChecked, ---
-	Gui, Add, ListView, xm+10 y+10 w915 h200 vMonitor_HiredLV Disabled -Multi
+	Gui, Add, ListView, xs y+10 w915 h200 vMonitor_HiredLV Disabled -Multi
 }
 
 ; Gui Company Manager tab
 {
 	Gui, Tab, Company Manager
-	Gui, Add, GroupBox, xm+10 y70 w915 h265 Section, Finances
+	Gui, Add, GroupBox, x+20 y+10 w915 h265 Section, Finances
 	Gui, Add, Button, xs+10 ys+20 gCompany_Finances, View Finances
 	Gui, Add, DropDownList, x+10 vCompany_FinancesPeriod, 24 Hours||7 Days|30 Days|All Time
 	Gui, Add, Button, x+150 gCompany_ConsolidateLoans, Consolidate Loans
 	Gui, Add, Button, x+150 gCompany_CleanLoans, Clean Up Loans
 	Gui, Add, ListView, xs+10 y+10 w895 h200 Grid vCompany_FinancesLV -Multi
 	
-	Gui, Add, GroupBox, xm+10 y+20 w915 h250 Section, Crew
+	Gui, Add, GroupBox, xs y+20 w915 h125 Section, Hire Crew
 	Gui, Add, Button, xs+10 ys+20 gCompany_CrewRefresh, Refresh
 	Gui, Add, Text, x+10, Duration:
 	Gui, Add, Edit, x+5 w30 vCompany_CrewDuration, 1
 	Gui, Add, Text, x+2, day(s)
 	Gui, Add, ListView, x+10 w400 h100 vCompany_CrewLV gCompany_CrewLVClick Grid -Multi
+	Gui, Add, Text, x+20 h100, Double-click a row to hire the pilot.
+	
+	Gui, Add, GroupBox, xs y+20 w915 h225 Section, Dispatch
+	Gui, Add, ListView, xs+10 ys+20 w400 h150 vCompany_DispatchCrewLV Grid -Multi
+	Gui, Add, ListView, x+20 w400 h150 vCompany_DispatchPlanesLV Grid -Multi
+	Gui, Add, Text, x+10, Duration (hrs):
+	Gui, Add, Edit, y+5 w50 vCompany_DispatchDuration, 12
+	Gui, Add, Text, y+10, $/nm:
+	Gui, Add, Edit, y+5 w50 vCompany_DispatchRangeRate, 50
+	Gui, Add, Text, y+10, $/1000lb/nm:
+	Gui, Add, Edit, y+5 w50 vCompany_DispatchPayloadRate, 50
+	
+	Gui, Add, Button, xs+10 y+25 gCompany_Dispatch, Dispatch the Crew/Plane
+	Gui, Add, Button, x+200 gCompany_DispatchRefresh, Refresh
 }
 
 ; Gui Flight Tools tab
 {
 	Gui, Tab, Flight Tools
-	Gui, Add, GroupBox, xm+10 y70 w915 h100, Descent Calculator
+	Gui, Add, GroupBox, x+20 y+10 w915 h120, Descent Calculator
 	
 	Gui, Add, Text, xp+20 yp+20 Section, Airport ICAO:
-	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO, KJFK
+	Gui, Add, Edit, x+5 w50 vFlight_AirportICAO,
 	Gui, Add, Text, x+20, Altitude (ft):
 	Gui, Add, Edit, x+5 w50 vFlight_CurrentAltitude, 10500	
 	Gui, Add, Text, x+20, Ground Speed (kts):
 	Gui, Add, Edit, x+5 w50 vFlight_Speed, 120
 	Gui, Add, Text, x+20, Glide Slope (deg):
 	Gui, Add, Edit, x+5 w50 vFlight_GlideSlope, 3
+	Gui, Add, Text, x+20, Pattern Alt (ft):
+	Gui, Add, Edit, x+5 w50 vFlight_PatternAltitude, 1000
+	
+	
+	Gui, Add, Button, xs y+10 gFlight_CalculateDescent, Calculate Descent
+	Gui, Add, Text, x+40, Start at:
+	Gui, Add, Text, x+5 w50 vFlight_DescentDistance, ---
+	Gui, Add, Text, x+20, Descend at:
+	Gui, Add, Text, x+5 w50 vFlight_DescentRate, ---
+	Gui, Add, Text, x+20, Final Approach:
+	Gui, Add, Text, x+5 w150 vFlight_FinalApproach, ---
+	
+	Gui, Add, Text, xs y+25, Airport Info:
+	Gui, Add, Text, x+20, Airport Altitude:
+	Gui, Add, Text, x+5 w50 vFlight_AirportAlt, ---
+	Gui, Add, Text, x+20, Tower Freq:
+	Gui, Add, Text, x+5 w100 vFlight_AirportTowerFreq, ---
+	Gui, Add, Text, x+10, Weather Freq:
+	Gui, Add, Text, x+5 w100 vFlight_AirportWeatherFreq, ---
 	Gui, Font, Underline cBlue
 	Gui, Add, Text, x+40 gFlight_Skyvector, SkyVector Link
 	Gui, Font
 	
-	Gui, Add, Button, xs y+20 gFlight_CalculateDescent, Calculate Descent
-	Gui, Add, Text, x+40, Start at (nm):
-	Gui, Add, Text, x+5 w50 vFlight_DescentDistance, ---
-	Gui, Add, Text, x+20, Descend at (fpm):
-	Gui, Add, Text, x+5 w50 vFlight_DescentRate, ---
-	Gui, Add, Text, x+20, Airport Altitude (ft):
-	Gui, Add, Text, x+5 w50 vFlight_AirportAlt, ---
-	Gui, Add, Text, xs+375 y+15, Tower Freq:
-	Gui, Add, Text, x+5 w100 vFlight_AirportTowerFreq, ---
-	Gui, Add, Text, x+10, Weather Freq:
-	Gui, Add, Text, x+5 w100 vFlight_AirportWeatherFreq, ---
-	
-	Gui, Add, GroupBox, xm+10 y+50 w915 h60, Stopwatch
+	Gui, Add, GroupBox, xs-20 y+25 w915 h60, Stopwatch
 	Gui, Font, s15
 	Gui, Add, Text, xp+20 yp+20 w200 Center vFlight_StopwatchDisplay, 0:00:00
 	Gui, Font
 	Gui, Add, Button, x+10 w60 vFlight_StopwatchStart gFlight_StopwatchStart, Start
 	Gui, Add, Button, x+20 w60 vFlight_StopwatchStop gFlight_StopwatchStop Disabled, Stop
 	
-	Gui, Add, GroupBox, xm+10 y+50 w915 h395 Section, Scratch Pad
+	Gui, Add, GroupBox, xs-20 y+50 w915 h395 Section, Scratch Pad
 	Gui, Font, s15
 	Gui, Add, Edit, xp+10 yp+20 w890 h300 vFlight_ScratchPad
 	Gui, Font
 	Gui, Add, Button, xs+100 y+10 w150 gFlight_SaveScratchPad, Save to File
 	Gui, Add, Button, x+400 w150 gFlight_LoadScratchPad, Load from File
 	Gui, Add, Text, xs+20 y+20, File path:	%scratchPadPath%
-	
 }
 
 ; Gui Debug tab
@@ -450,7 +476,7 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	If (debugFlag) {
 		GuiControl,,GUI_Tabs, Debug
 		Gui, Tab, Debug
-		Gui, Add, Button, xm+10 y90 w100 gDebug_Test, Test
+		Gui, Add, Button, x+10 y+30 w100 gDebug_Test Section, Test
 	}
 }
 
@@ -578,15 +604,22 @@ Settings_Connect:
 	If (!PilotResult.RowCount) {
 		GuiControl, , Settings_Pilot, % "Valid pilots were not able to be loaded from database."
 	} Else {
+		foundCurrentPilot := FALSE
 		Loop % PilotResult.RowCount {
 			PilotResult.Next(PilotRow)
 			If (PilotRow[2] == PilotRow[3]) {
 				Pilot.id := PilotRow[2]
 				GuiControl, , Settings_Pilot, % "ID: " . PilotRow[2] . "`t Callsign: " . PilotRow[1]
 				PilotRow[3] := "<<<"
+				foundCurrentPilot := TRUE
 			} Else {
 				PilotRow[3] := " "
 			}
+		}
+		If !(foundCurrentPilot) { ; Handles the rare case where, due to names/deleting pilots, the CurrentPilot table has the wrong ID values.
+			MsgBox Current pilot was not able to be attained from database. Possible issue in the CurrentPilot table. Random pilot chosen.
+			GuiControl, , Settings_Pilot, % "ID: " . PilotRow[2] . "`t Callsign: " . PilotRow[1]
+			Pilot.id := PilotRow[2]
 		}
 		PilotResult.Reset()
 		LV_ShowTable(PilotResult, "Settings_PilotLV")
@@ -623,6 +656,7 @@ Settings_Disconnect:
 	LV_Clear("Goods_TradesLV")
 	LV_Clear("Settings_TimestampLV")
 	SB_SetText("Disconnected from the database")
+	return
 }
 
 Settings_Backup:
@@ -675,6 +709,7 @@ Settings_TimestampAuto:
 	Gui, Main:Default
 	SB_SetText("Attempting timestamp conversion...")
 	; Check the Missions timestamps
+	checkLimit := 99999
 	Loop, Parse, dateFormats, | 
 	{
 		GuiControl, Choose, Settings_MissionDateFormat, %A_Index%
@@ -687,7 +722,7 @@ Settings_TimestampAuto:
 					expiration AS [DB Value], %qExpiration% AS Formatted, 
 					IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
 					IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-				FROM missions ORDER BY id DESC LIMIT 300 )
+				FROM missions ORDER BY id DESC LIMIT %checkLimit% )
 			ORDER BY Validation DESC LIMIT 1
 		)
 		If !(MissionTimeCheckResult := SQLiteGetTable(DB, MissionTimeCheckQuery)) {
@@ -711,7 +746,7 @@ Settings_TimestampAuto:
 					refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
 					IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
 					IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-				FROM goodsMarket ORDER BY id DESC LIMIT 300 )
+				FROM goodsMarket ORDER BY id DESC LIMIT %checkLimit% )
 			ORDER BY Validation DESC LIMIT 1
 		)
 		If !(GoodsTimeCheckResult := SQLiteGetTable(DB, GoodsTimeCheckQuery)) {
@@ -741,6 +776,7 @@ Settings_TimestampPreview:
 {
 	Gui, Main:Default
 	SB_SetText("Previewing timestamp conversions...")
+	checkLimit := 300
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	; Show the user the complete output
@@ -754,14 +790,14 @@ Settings_TimestampPreview:
 				refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
 				IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
 				IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-			FROM goodsMarket ORDER BY id DESC LIMIT 300 )
+			FROM goodsMarket ORDER BY id DESC LIMIT %checkLimit% )
 		UNION ALL SELECT * FROM (
 			SELECT DISTINCT 
 				'Missions.Expiration' AS [DB Field], 
 				expiration AS [DB Value], %qExpiration% AS Formatted, 
 				IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
 				IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-			FROM missions ORDER BY id DESC LIMIT 300 )
+			FROM missions ORDER BY id DESC LIMIT %checkLimit% )
 		ORDER BY Validation DESC
 	)
 	If !(TimestampsPreviewResult := SQLiteGetTable(DB, TimestampsPreviewQuery)) {
@@ -1068,7 +1104,7 @@ Goods_RefreshMissions:
 		INNER JOIN airport AS a
 		ON a.ident=m.arrival
 		WHERE
-			departure='%Goods_DepartureICAO%'
+			departure = UPPER('%Goods_DepartureICAO%')
 			AND m.dist <= %Goods_MaxRange%
 			AND a.num_runway_hard >= %Goods_ArrivalHard%
 			AND a.num_runway_light >= %Goods_ArrivalLights%
@@ -1163,7 +1199,7 @@ Goods_RefreshMissions:
 				INNER JOIN
 					goodsMarket AS dest ON dep.name=dest.name
 				WHERE
-					dep.location='%qDeparture%'
+					dep.location=UPPER('%qDeparture%')
 					AND dep.type %qIllicit%
 					AND dep.type %qNormal%
 					AND dep.type %qPerishable%
@@ -1193,7 +1229,7 @@ Goods_RefreshMissions:
 				NFMissionsRow[12] := ROUND(NFMissionsRow[11]/NFMissionsRow[4],0)
 				NFMissionsNextGoodsQuery = 
 				(
-					SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+					SELECT name FROM goodsMarket WHERE location=UPPER('%qArrival%') AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
 				)
 				If !(NFMissionsNextGoodsResult := SQLiteGetTable(DB, NFMissionsNextGoodsQuery)) {
 					return
@@ -1247,7 +1283,7 @@ Goods_RefreshMissions:
 				INNER JOIN
 					airport AS a ON dest.location=a.ident
 				WHERE
-					dep.location='%Goods_DepartureICAO%'
+					dep.location=UPPER('%Goods_DepartureICAO%')
 					AND dep.type %qIllicit%
 					AND dep.type %qNormal%
 					AND dep.type %qPerishable%
@@ -1312,7 +1348,7 @@ Goods_RefreshMissions:
 					ON dep.name=dest.name
 					WHERE
 						[Profit/u] > 0
-						AND dep.location='%qDeparture%'
+						AND dep.location=UPPER('%qDeparture%')
 						AND dep.type %qIllicit%
 						AND dep.type %qNormal%
 						AND dep.type %qPerishable%
@@ -1341,7 +1377,7 @@ Goods_RefreshMissions:
 				TradesRow[5] := ROUND(TradesRow[3]/TradesRow[4],0)
 				TradesNextGoodsQuery = 
 				(
-					SELECT name FROM goodsMarket WHERE location='%qArrival%' AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
+					SELECT name FROM goodsMarket WHERE location=UPPER('%qArrival%') AND tradetype=0 AND quantity>0 AND type %qIllicit% ORDER BY unitprice/unitweight DESC
 				)
 				If !(TradesNextGoodsResult := SQLiteGetTable(DB, TradesNextGoodsQuery)) {
 					return
@@ -1555,12 +1591,12 @@ Goods_RefreshMarket:
 			[Profit/u] > 0
 			AND dep.tradeType=0
 			AND dest.tradeType=1
-			AND dep.location='%Goods_DepartureICAO%'
+			AND dep.location=UPPER('%Goods_DepartureICAO%')
 			AND dep.type %qIllicit%
 			AND dep.type %qNormal%
 			AND dep.type %qPerishable%
 			AND dep.type %qFragile%
-			AND dest.location='%Goods_ArrivalICAO%'
+			AND dest.location=UPPER('%Goods_ArrivalICAO%')
 			AND dep.quantity>0
 			AND dest.quantity>0
 			AND %qDepRefreshDateField% > DATETIME('now', '-%marketRefreshHours% hours', 'localtime')
@@ -1598,6 +1634,7 @@ Goods_RefreshMarket:
 	GuiControl, , Goods_GoodsWeight, % ROUND(goodsWeight,0)
 	GuiControl, Text, Goods_OptimalGoodsText, % "Displaying " . OptimalResult.RowCount . " viable goods"
 	LV_ShowTable(OptimalResult, "Goods_TradesLV")
+	GuiControl, , Flight_AirportICAO, % Goods_ArrivalICAO
 	GoSub Goods_CheckHangar
 	SB_SetText("Optimal goods refreshed")
 	return
@@ -1815,23 +1852,59 @@ SummaryGuiClose:
 }
 
 ; == Auto-Market tab Subroutines ==
+Auto_DistanceDropDown:
+{
+	GuiControlGet, Auto_DistanceDropDown ; AltSubmit being used; will be indexed.
+	Switch Auto_DistanceDropDown
+	{
+		Case 1: 
+			GuiControl, Text, Auto_MinDistance, 0
+			GuiControl, Text, Auto_MaxDistance, 50
+		Case 2:
+			GuiControl, Text, Auto_MinDistance, 50
+			GuiControl, Text, Auto_MaxDistance, 300
+		Case 3:
+			GuiControl, Text, Auto_MinDistance, 300
+			GuiControl, Text, Auto_MaxDistance, 1000
+		Case 4:
+			GuiControl, Text, Auto_MinDistance, 1000
+			GuiControl, Text, Auto_MaxDistance, 3000
+		Case 5:
+			GuiControl, Text, Auto_MinDistance, 3000
+			GuiControl, Text, Auto_MaxDistance, 99999
+		Case 6:
+			GuiControl, Text, Auto_MinDistance, 0
+			GuiControl, Text, Auto_MaxDistance, 99999
+		Default:
+			GuiControl, Text, Auto_MinDistance, 0
+			GuiControl, Text, Auto_MaxDistance, 99999
+	}
+	return
+}	
+
 Auto_List:
 {
 	Gui, Main:Default
 	SB_SetText("Finding list ICAOs to search...")
 	LV_Clear("Auto_ListLV")
 	GuiControlGet, Auto_CenterICAO
+	GuiControlGet, Auto_MinDistance
 	GuiControlGet, Auto_MaxDistance
+	GuiControlGet, Auto_MissionType
+	If (Auto_MissionType=="Any") {
+		qMissionTypeClause := "1=1"
+	} Else {
+		qMissionTypeClause := "m.missionTypeS = '" . Auto_MissionType . "'"
+	}
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	qExpiration := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "m.expiration")
 	qRefreshDate := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	AutoListQuery = 
 	(
-		SELECT DISTINCT 
+		SELECT DISTINCT
 			m.arrival AS ICAO, 
 			m.dist AS Distance,
-			m.missionTypeS AS [Type],
 			m.missionHeading AS [Hdg from %Auto_CenterICAO%]			
 		FROM
 			missions AS m
@@ -1840,8 +1913,10 @@ Auto_List:
 		ON
 			a.ident = m.arrival
 		WHERE
-			m.departure = '%Auto_CenterICAO%'
+			m.departure = UPPER('%Auto_CenterICAO%')
+			AND %qMissionTypeClause%
 			AND m.dist <= %Auto_MaxDistance%
+			AND m.dist >= %Auto_MinDistance%
 			AND %qExpiration% > DATETIME('now', 'localtime')
 			AND m.arrival NOT IN (
 				SELECT DISTINCT gm.location FROM goodsMarket AS gm WHERE %qRefreshDate% > DATETIME('now', '-%marketRefreshHours% hours', 'localtime') )
@@ -2053,21 +2128,24 @@ AircraftMarket_Search:
 	GuiControl, Text, AircraftMarket_AircraftText, % "Searching aircraft market..."
 	GuiControlGet, AircraftMarket_Aircraft
 	moveCostPerMile := 9.0
+	maximumMoveCost := 5000
+	qPilotID := Pilot.id
 	PilotLocationQuery = 
 	(	
-		SELECT lonx, laty FROM airport WHERE ident=(SELECT pilotCurrentICAO FROM career WHERE id=(SELECT pilotID FROM currentPilot LIMIT 1) LIMIT 1) LIMIT 1
+		SELECT lonx, laty FROM airport WHERE ident=(SELECT pilotCurrentICAO FROM career WHERE id=%qPilotID% LIMIT 1) LIMIT 1
 	)
 	If !(PilotLocationResult := SQLiteGetTable(DB, PilotLocationQuery)) {
 		return
 	}
 	If (!PilotLocationResult.HasRows) {
+		MsgBox Could not get pilot location.
 		return
 	} Else {
 		PilotLocationResult.GetRow(1, PilotLocationRow)
 		pilotLonX := PilotLocationRow[1]
 		pilotLatY := PilotLocationRow[2]
 	}
-
+	
 	qPilotWeight := Pilot.weight
 	AircraftMarketQuery = 
 	(
@@ -2114,7 +2192,7 @@ AircraftMarket_Search:
 	Loop % AircraftMarketResult.RowCount {
 		AircraftMarketResult.Next(AircraftMarketRow)
 		AircraftMarketRow[6] := ROUND(0.000539957*InvVincenty(pilotLatY, pilotLonX, AircraftMarketRow[8], AircraftMarketRow[7]), 0)
-		AircraftMarketRow[4] := ROUND(AircraftMarketRow[6] * moveCostPerMile,0)
+		AircraftMarketRow[4] := ROUND(MIN(AircraftMarketRow[6] * moveCostPerMile, maximumMoveCost),0)
 		AircraftMarketRow[5] := ROUND(AircraftMarketRow[3] + AircraftMarketRow[4],0)
 		AircraftMarketRow[16] := ROUND(AircraftMarketRow[5] / AircraftMarketRow[11],0) ; Cost/range
 		AircraftMarketRow[17] := ROUND(AircraftMarketRow[5] / AircraftMarketRow[13],0) ; Cost/payload
@@ -2174,20 +2252,26 @@ Generator_FindLatLon:
 	GuiControlGet, Generator_arrival
 	DepartureLocQuery = 
 	(
-		SELECT lonx, laty FROM airport WHERE ident='%Generator_departure%' LIMIT 1
+		SELECT lonx, laty FROM airport WHERE ident=UPPER('%Generator_departure%') LIMIT 1
 	)
 	If !(DepartureLocResult := SQLiteGetTable(DB, DepartureLocQuery)) {
 		return
+	}
+	If (DepartureLocResult.RowCount<1) {
+		MsgBox Could not find information for ICAO '%Generator_departure%'
 	}
 	DepartureLocResult.GetRow(1, DepartureLocRow)
 	lonDep := DepartureLocRow[1]
 	latDep := DepartureLocRow[2]
 	ArrivalLocQuery = 
 	(
-		SELECT lonx, laty FROM airport WHERE ident='%Generator_arrival%' LIMIT 1
+		SELECT lonx, laty FROM airport WHERE ident=UPPER('%Generator_arrival%') LIMIT 1
 	)
 	If !(ArrivalLocResult := SQLiteGetTable(DB, ArrivalLocQuery)) {
 		return
+	}
+	If (ArrivalLocResult.RowCount<1) {
+		MsgBox Could not find information for ICAO '%Generator_arrival%'
 	}
 	ArrivalLocResult.GetRow(1, ArrivalLocRow)
 	lonArriv := ArrivalLocRow[1]
@@ -2312,13 +2396,13 @@ Generator_Preview:
 		NextPreviewQuery =
 		(
 			SELECT
-				'%Generator_departure%' AS departure,
+				UPPER('%Generator_departure%') AS departure,
 				'%Generator_latDep%' AS latDep,
 				'%Generator_lonDep%' AS lonDep,
 				'' AS escale,
 				0 AS latEsc,
 				0 AS lonEsc,
-				'%Generator_arrival%' AS arrival,
+				UPPER('%Generator_arrival%') AS arrival,
 				'%Generator_latArriv%' AS latArriv,
 				'%Generator_lonArriv%' AS lonArriv,
 				1000 AS altMax,
@@ -2437,6 +2521,7 @@ Monitor_Check:
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Monitor_UseWebhook
 	GuiControlGet, Monitor_BeepCount
+	; Online mode
 	If !(Monitor_OfflineMode) {
 		; Get Available hangar planes
 		qPilotID := Pilot.id
@@ -2499,7 +2584,7 @@ Monitor_Check:
 		FormatTime, currTime, , yyyy-MM-dd HH:mm:ss
 		GuiControl, Text, Monitor_HangarLastChecked, % currTime
 	}
-	; Get active hired missions
+	; Refresh the active hired missions
 	qDateStart := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "rj.dateStart")
 	MonitorHiredQuery =
 	(
@@ -2542,15 +2627,20 @@ Monitor_Check:
 				If (MonitorHiredRow[1] = oldID) { ; This is the same job
 					LV_GetText(oldTR, A_Index, 11)
 					If (MonitorHiredRow[11]<=0 && oldTR>0) { ; Job has transitioned from time remaining to time elapsed
-						postMessage := MonitorHiredRow[6] . " should be at " . MonitorHiredRow[5] . " with the " . MonitorHiredRow[2] . " " . MonitorHiredRow[12] " (#" . MonitorHiredRow[1] . ")"
-						postdata =
-						(
-						{
-							"username": "NeoFly Tools",
-							"content": "%postMessage%"
+						If (Monitor_UseWebhook) {
+							postMessage := MonitorHiredRow[6] . " should be at " . MonitorHiredRow[5] . " with the " . MonitorHiredRow[2] . " " . MonitorHiredRow[12] " (#" . MonitorHiredRow[1] . ")"
+							postdata =
+							(
+							{
+								"username": "NeoFly Tools",
+								"content": "%postMessage%"
+							}
+							)
+							Webhook_PostSend(Monitor_URL, postdata)
+						} else {
+							Monitor_BeepsRemaining := Monitor_BeepCount
+							SetTimer, Monitor_Beep, 500
 						}
-						)
-						Webhook_PostSend(Monitor_URL, postdata)
 					}
 				}
 				break ; Can break the LV loop since we found the ID.
@@ -2574,6 +2664,7 @@ Monitor_Enable:
 	GuiControl, Disable, Monitor_RefreshInterval
 	GuiControl, Enable, Monitor_Disable
 	GuiControl, Enable, Monitor_HiredLV
+	GuiControl, Enable, Monitor_CheckNow
 	GuiControlGet, Monitor_OfflineMode
 	GuiControlGet, Monitor_RefreshInterval
 	If !(Monitor_OfflineMode) {
@@ -2595,6 +2686,7 @@ Monitor_Disable:
 	GuiControl, Enable, Monitor_Enable
 	GuiControl, Enable, Monitor_RefreshInterval
 	GuiControl, Disable, Monitor_Disable
+	GuiControl, Disable, Monitor_CheckNow
 	GuiControl, Text, Monitor_HangarLastChecked, ---
 	GuiControl, Text, Monitor_HiredLastChecked, ---
 	LV_Clear("Monitor_HangarLV")
@@ -2697,6 +2789,7 @@ Company_ConsolidateLoans:
 	}	
 	return
 }
+
 Company_Finances:
 {
 	SB_SetText("Displaying pilot financials...")
@@ -2719,11 +2812,12 @@ Company_Finances:
 			qDateMax := "DATETIME('now','localtime','+1 days')"
 	}
 	qBalancesDate := SQLiteGenerateDateConversion(Settings_MissionDateFormat, "date")
+	qPilotID := Pilot.ID
 	BalancesSelectQuery = 
 	(
 		SELECT date AS [Transaction Date], description AS Description, incomes AS Income, expenses AS Expenses, '' AS ''
 		FROM balances
-		WHERE owner = (SELECT pilotID FROM currentPilot LIMIT 1)
+		WHERE owner = %qPilotID%
 		AND [Transaction Date] >= %qDateMin%
 		AND [Transaction Date] <= %qDateMax%
 		ORDER BY [Transaction Date] DESC
@@ -2804,7 +2898,7 @@ Company_CrewRefresh:
 	AipilotsListQuery =
 	(
 		SELECT id AS ID, name AS Name, wages AS [Wages/day],
-			IIF(catA='TRUE', 'A ', '') || IIF(catB='TRUE', 'B ', '') || IIF(catC='TRUE', 'C ', '') || IIF(catD='TRUE', 'D ', '') || IIF(catE='TRUE', 'E ', '')|| IIF(catF='TRUE', 'F ', '') AS Qualifications
+			IIF(catA LIKE 'TRUE', 'A ', '') || IIF(catB LIKE 'TRUE', 'B ', '') || IIF(catC LIKE 'TRUE', 'C ', '') || IIF(catD LIKE 'TRUE', 'D ', '') || IIF(catE LIKE 'TRUE', 'E ', '')|| IIF(catF LIKE 'TRUE', 'F ', '') AS Qualifications
 		FROM aipilots
 		WHERE status = 0
 		ORDER BY id ASC
@@ -2885,6 +2979,214 @@ Company_CrewLVClick:
 	return
 }
 
+Company_DispatchRefresh:
+{
+	SB_SetText("Refreshing available dispatch resources...")
+	Gui, Main:Default
+	qPilotId := Pilot.ID
+	; Get list of crew
+	qEndDateField := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "dateend")
+	HiredPilotsListQuery = 
+	(
+		SELECT 
+			id AS ID, 
+			name AS Name, 
+			%qEndDateField% AS End,
+			24.0*(julianday(%qEndDateField%) - julianday('now', 'localtime')) AS 'Contract Hrs Left',
+			IIF(catA LIKE 'TRUE', 'A ', '') || IIF(catB LIKE 'TRUE', 'B ', '') || IIF(catC LIKE 'TRUE', 'C ', '') || IIF(catD LIKE 'TRUE', 'D ', '') || IIF(catE LIKE 'TRUE', 'E ', '')|| IIF(catF LIKE 'TRUE', 'F ', '') AS Qualifications
+		FROM crew
+		WHERE
+			owner = %qPilotID%
+			AND status=0
+	)
+	If !(HiredPilotsResult := SQLiteGetTable(DB, HiredPilotsListQuery)) {
+		return
+	}
+	LV_ShowTable(HiredPilotsResult, "Company_DispatchCrewLV")
+	; Get available planes
+	AvailablePlanesQuery = 
+	(
+		SELECT 
+			hangar.id AS ID,
+			hangar.tailNumber AS Tail,
+			hangar.Aircraft, 
+			CASE hangar.status
+				WHEN 0 THEN 'Available'
+				WHEN 1 THEN 'Flying'
+				WHEN 3 THEN 'Hired'
+				WHEN 5 THEN 'Removed'
+				ELSE 'Unknown'
+			END AS Status, 
+			hangar.MaxPayloadlbs AS [Max Payload],
+			hangar.Location,
+			hangar.currentFuel AS Fuel,
+			aircraftdata.FuelCaplbs AS [Max Fuel],
+			hangar.Qualification,
+			aircraftdata.CruiseSpeedktas AS [Cruise Speed (kts)],
+			hangar.Rangenm AS Range
+		FROM hangar 
+		INNER JOIN 
+			aircraftdata ON hangar.Aircraft=aircraftdata.Aircraft
+		WHERE owner=%qPilotID%
+		AND hangar.status = 0
+		ORDER BY hangar.id
+	)
+	If !(AvailablePlanesResult := SQLiteGetTable(DB, AvailablePlanesQuery)) {
+		return
+	}
+	LV_ShowTable(AvailablePlanesResult, "Company_DispatchPlanesLV")
+	SB_SetText("Dispatch resources refreshed.")
+	return
+}
+
+Company_Dispatch:
+{
+	SB_SetText("Dispatching crew...")
+	Gui, Main:Default
+	GuiControlGet, Company_DispatchDuration
+	GuiControlGet, Company_DispatchPayloadRate
+	GuiControlGet, Company_DispatchRangeRate
+	Gui, ListView, Company_DispatchCrewLV
+	SelectedCrewRow := LV_GetNext()
+	If !(SelectedCrewRow) {
+		MsgBox You must select a crew member!
+		return
+	}
+	LV_GetText(CrewID, SelectedCrewRow, 1)
+	LV_GetText(CrewName, SelectedCrewRow, 2)
+	LV_GetText(CrewContractHrs, SelectedCrewRow, 4)
+	LV_GetText(CrewQualification, SelectedCrewRow, 5)
+	Gui, ListView, Company_DispatchPlanesLV
+	SelectedPlaneRow := LV_GetNext()
+	If !(SelectedPlaneRow) {
+		MsgBox You must select an available plane!
+		return
+	}
+	LV_GetText(PlaneID, SelectedPlaneRow, 1)
+	LV_GetText(PlaneTail, SelectedPlaneRow, 2)
+	LV_GetText(PlanePayload, SelectedPlaneRow, 5)
+	LV_GetText(PlaneLocation, SelectedPlaneRow, 6)
+	LV_GetText(PlaneQualification, SelectedPlaneRow, 9)
+	LV_GetText(PlaneSpeed, SelectedPlaneRow, 10)
+	If !(InStr(CrewQualification, PlaneQualification)) {
+		MsgBox Crew member is not qualified to fly this plane.
+		return
+	}
+	If (Company_DispatchDuration>CrewContractHrs) {
+		MsgBox Crew member is not available for the full duration.
+		return
+	}
+	; Find return ICAO
+	ReturnICAOQuery =
+	(
+		SELECT a.lonx, a.laty FROM airport AS a
+		INNER JOIN hangar AS h ON h.Location = a.ident
+		WHERE h.id = %PlaneID%
+		LIMIT 1
+	)
+	If !(ReturnICAOResult := SQLiteGetTable(DB, ReturnICAOQuery)) {
+		return
+	}
+	If (ReturnICAOResult.RowCount<1) {
+		MsgBox Could not find information for ICAO at plane location.
+		return
+	}
+	ReturnICAOResult.GetRow(1, ReturnICAORow)
+	latDest := ReturnICAORow[2]
+	lonDest := ReturnICAORow[1]
+	latOffset := 1
+	; Find suitable departure ICAO
+	DepICAOQuery =
+	(
+		SELECT a.lonx, a.laty, a.ident, MIN(ABS(a.lonx-(%lonDest%)) + ABS(a.laty-(%latDest%)+(%latOffset%))) AS coordDiff
+		FROM airport AS a
+		GROUP BY a.ident
+		ORDER BY coordDiff ASC
+		LIMIT 1
+	)
+	If !(DepICAOResult := SQLiteGetTable(DB, DepICAOQuery)) {
+		return
+	}
+	If (DepICAOResult.RowCount<1) {
+		MsgBox Could not find information for suitable departure ICAO for hired mission.
+		return
+	}
+	DepICAOResult.GetRow(1, DepICAORow)
+	latDep := DepICAORow[2]
+	lonDep := DepICAORow[1]
+	icaoDep := DepICAORow[3]
+	; Calculate distances and payment
+	incomePerMile := Company_DispatchRangeRate
+	incomePerPayloadPerMile := Company_DispatchPayloadRate/1000.0
+	estimatedDistance := ROUND(DistanceFromCoord(lonDep, latDep, lonDest, latDest))
+	estimatedPay := ROUND(PlaneSpeed*Company_DispatchDuration*(incomePerMile + incomePerPayloadPerMile*PlanePayload),0)
+	qMissionSpeed := ROUND(estimatedDistance/Company_DispatchDuration,2)
+	qCanJumpMissionID := 0 ; "(SELECT id FROM canJumpMissions ORDER BY id DESC LIMIT 1)"
+	qInfo := "" ; "NFT Dispatch "
+	qMissionType := 2 ; 2=Cargo
+	qStatus := 2 ; 2=In flight
+	
+	infoPrettyPayment := prettyNumbers(estimatedPay, true)
+	infoText =
+	(
+%PlaneTail% and %CrewName% will be sent on a roughly %Company_DispatchDuration%hr mission from %icaoDep% to %PlaneLocation%. Payment upon mission completion will be %infoPrettyPayment%.
+		
+YOU MUST RESTART NEOFLY AFTER PERFORMING THESE ACTIONS. Otherwise, NeoFly will not grab the mission and statuses from the database, and you may cause conflicts.
+		
+Other notes:
+- Double-clicking the hired mission or plane in the map view will cause NeoFly to crash.
+- Trying to jump into this hired mission will cause NeoFly to crash.
+- If you close and re-open NeoFly, the progress for the mission will appear to reset. It's inconsistent, but after the total time has elapsed, the mission should finish when restarting NeoFly.
+
+Are you sure you want to continue?
+	)
+		
+	MsgBox, 36, Confirm Dispatch, % infoText
+	IfMsgBox Yes
+	{
+		; Other query vars
+		qNowTimestamp := TimestampFormat(A_Now, true)
+		qZeroTimestamp := TimestampFormat(0, true) ;  ; TimestampFormat(16010101000000, true)
+		qPilotID := Pilot.ID
+		RentJobInsertQuery = 
+		(
+			INSERT INTO rentJob (id, status, departure, destination, pay, missiontype, aircraftID, distance, speed, dateStart, dateEnd, owner, currentLat, currentLon, cjmID, info, pilotName, latDest, lonDest)
+			VALUES (
+				(SELECT id FROM rentJob ORDER BY id DESC LIMIT 1)+1,
+				%qStatus%,
+				'%icaoDep%',
+				'%PlaneLocation%',
+				%estimatedPay%,
+				%qMissionType%,
+				%PlaneID%,
+				%estimatedDistance%,
+				%qMissionSpeed%,
+				'%qNowTimestamp%',
+				'%qZeroTimestamp%',
+				%qPilotID%,
+				%latDep%,
+				%lonDep%,
+				%qCanJumpMissionID%,
+				'%qInfo%',
+				'%CrewName%',
+				%latDest%,
+				%lonDest%);
+				
+			UPDATE crew SET status=1, idRentJob=(SELECT id FROM rentJob ORDER BY id DESC LIMIT 1)
+				WHERE id=%CrewID%;
+				
+			UPDATE hangar SET status=3 WHERE id=%PlaneID%;		
+		)
+		
+		If !(SQLiteExecute(DB, RentJobInsertQuery)) {
+			return
+		}
+		GoSub Company_DispatchRefresh
+	}
+	SB_SetText("Crew dispatched.")
+	return
+}
+
 ; == Flight Tools Tab Subroutines == 
 Flight_CalculateDescent:
 {
@@ -2892,9 +3194,10 @@ Flight_CalculateDescent:
 	GuiControlGet, Flight_Speed
 	GuiControlGet, Flight_GlideSlope
 	GuiControlGet, Flight_CurrentAltitude
+	GuiControlGet, Flight_PatternAltitude
 	AirportQuery = 
 	(
-		SELECT altitude, tower_frequency, unicom_frequency, atis_frequency, asos_frequency, awos_frequency FROM airport WHERE ident = '%Flight_AirportICAO%' LIMIT 1
+		SELECT altitude, tower_frequency, unicom_frequency, atis_frequency, asos_frequency, awos_frequency FROM airport WHERE ident = UPPER('%Flight_AirportICAO%') LIMIT 1
 	)
 	If !(AirportResult := SQLiteGetTable(DB, AirportQuery)) {
 		return
@@ -2922,9 +3225,15 @@ Flight_CalculateDescent:
 	} else {
 		GuiControl, Text, Flight_AirportWeatherFreq, % "Not in DB"
 	}
-	GuiControl, Text, Flight_AirportAlt, % AirportRow[1]
-	GuiControl, Text, Flight_DescentDistance, % ROUND((Flight_CurrentAltitude-AirportRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
-	GuiControl, Text, Flight_DescentRate, % CEIL(100.0*Flight_Speed/60.0*Flight_GlideSlope/50)*50
+	GuiControl, Text, Flight_AirportAlt, % AirportRow[1] . " ft"
+	; Calculate descent
+	verticalDistance := Flight_CurrentAltitude - AirportRow[1] - Flight_PatternAltitude
+	horizontalDistance := ROUND((Flight_CurrentAltitude-AirportRow[1])/Tan(dtr(Flight_GlideSlope))/6076.12,1)
+	approachDistance := ROUND(Flight_PatternAltitude/Tan(dtr(Flight_GlideSlope))/6076.12,1)
+	approachHeight := AirportRow[1] + Flight_PatternAltitude
+	GuiControl, Text, Flight_DescentDistance, % horizontalDistance . " nm"
+	GuiControl, Text, Flight_DescentRate, % CEIL(100.0*Flight_Speed/60.0*Flight_GlideSlope/50)*50 . " fpm"
+	GuiControl, Text, Flight_FinalApproach, % approachDistance . " nm @ " . approachHeight . " ft"
 	return
 }
 
@@ -3000,7 +3309,8 @@ Flight_LoadScratchPad:
 ; == Debug Tab Subroutines
 Debug_Test:
 {
-	MsgBox % DB._Path
+	MsgBox % TimestampFormat(0) . ", " . TimestampFormat(A_Now)
+	MsgBox % TimestampFormat(0, true) . ", " . TimestampFormat(A_Now, true)
 	return
 }
 
@@ -3051,6 +3361,7 @@ SQLiteExecute(database, query) {
 
 SQLitePreviewTable(Table) {
 	global Preview_LV
+	Table.Reset()
 	Gui, Preview:Destroy
 	Gui, Preview:New
 	Gui, Preview:Default
@@ -3281,9 +3592,22 @@ TimestampFormat(timestampToFormat, force24 = false) {
 	} else {
 		timestampFormat := dateFormat . " " . timeFormat
 	}
-	FormatTime, returnText, %timestampToFormat%, %timestampFormat%
+	If (timestampToFormat=0) { ; If user wants a "0" time, have to manually return the string since FormatTime can only do year=1601 or later
+		StringCaseSense, On
+		returnText := StrReplace(timestampFormat, "HH", "00")
+		returnText := StrReplace(returnText, "h", "12")
+		returnText := StrReplace(returnText, "mm", "00")
+		returnText := StrReplace(returnText, "ss", "00")
+		returnText := StrReplace(returnText, "yyyy", "0001")
+		returnText := StrReplace(returnText, "MM", "01")
+		returnText := StrReplace(returnText, "dd", "01")
+		returnText := StrReplace(returnText, "tt", "AM")
+		StringCaseSense, Off
+	} else {
+		FormatTime, returnText, %timestampToFormat%, %timestampFormat%
+	}
 	return returnText
-}		
+}
 
 ; NOTES RE DATE FORMATS
 /*
@@ -3302,7 +3626,23 @@ Mission					|		Goods
 Assumptions:
 
 Date format always follows HKEY_CURRENT_USER\Control Panel\International, sShortDate
-Time format follows HKEY_CURRENT_USER\Control Panel\International, sTimeFormat ONLY FOR GOODS. Missions seem to always use 24hr format.
+Time format follows HKEY_CURRENT_USER\Control Panel\International, sTimeFormat as "default". Some fields force 24 hour "hh:mm:ss" format. See below:
+
+balances: force24
+canJumpMissions: force24
+cargo: default
+crew: default
+dispatcher: default
+fbo: default
+goodsMarket: default
+loanpayments: force24
+loans: force24
+log: force24
+missions: force24
+missionsFBO: force24 (guess)
+missionsStacked: force24 (guess)
+rentJob: force24
+warehouse: default (guess)
 
 */
 

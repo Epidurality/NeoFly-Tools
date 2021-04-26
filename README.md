@@ -18,7 +18,7 @@ I've taken the time to document the procedures and nuances of the program, pleas
     1. If using the *Executable / Binary* version, simply run the *NeoFly Tools.exe*.
 	1. If you prefer using the Script version, download the *Source* folder instead and run the *NeoFly Tools.ahk* script. Requires AutoHotkey (https://www.autohotkey.com/).
 1. Configure your defaults and certain settings using the *NeoFly Tools.ini* file.
-1. Requires NeoFly 2.13 or later.
+1. Unless otherwise stated, this tool will require the newest NeoFly update.
 
 ### Connecting to the Database:
 1. Go to the Settings tab
@@ -126,6 +126,8 @@ Collection of scripts to augment the company management in NeoFly.
 1. **Backup your database before the first few times you use some of these features.**
 1. Loan Cleaner
     1. Removes records of loans that have already been paid.
+	1. Loan Consolidator takes all outstanding loans and puts them under one Loan, making it quick and easy to pay off in NeoFly.
+		1. NOTE: Refresh the Loans in NeoFly to see the changes made by these tools.
 1. Finance Viewer
 	1. Lists and summarizes your finances based on a given range.
 1. Advanced crew management
@@ -134,6 +136,14 @@ Collection of scripts to augment the company management in NeoFly.
 	1. Enter any value from 0.0001 to 365 for Duration (there's actally no practical limit to hire time, just don't go too high or too low to avoid possible code errors with large numbers).
 	1. Confirmation box will explain the cost and duration of the contract for this crew member.
 	1. A loan will be created in the amount shown when confirmed.
+1. Automated Dispatch
+	1. No more micromanaging! Great when you've started to build your fleet and just want to sit back and watch others make you money.
+	1. Choose the duration of the dispatch.
+	1. Refresh the Dispatch window, and click on a crew member and a plane for them to fly.
+	1. Click the *Dispatch* button. The tool will calculate (based on speed and payload of the aircraft) an approximate total income from your crew over the duration.
+	1. Once accepted, the script will basically make up a fake mission (so don't try to join it in flight, or really tamper with it in any way...) and send your AI crew on that mission. Once complete (at the end of the Duration), you will recieve the quoted mission income.
+		1. The fuel used by the mission is going to be wonky. Not much I can or want to do about it.
+		1. The mission will always end at the ICAO that your plane was at.
 
 ### Flight Tools:
 Simple flight tools for use in MSFS.
@@ -152,6 +162,8 @@ Simple flight tools for use in MSFS.
 1. Basic wrench/tool icon made by Freepik from www.flaticon.com
 
 ## Known Issues:
+- Automatic Dispatch doesn't seem to keep the planes flying while NeoFly is closed, even after restarting NeoFly. Not sure if this is something I have to account for, or part of the overall AI-flight bugginess in NeoFly. It does eventually work and NeoFly processes that "this plane should have landed", but it's not consistent and progress isn't shown.
+- If an automated dispatch is too short, plane will just boomerang around the destination and never land.
 - Localization of dates and number formats will continue to be an issue until all localization differences are accounted for.
     - Auto-Timestamp chooser when connecting to a database only looks at the newest few entries in the database. Some databases have multiple timestamp formats for the same field depending on NeoFly version used to create them. Manually check your DB if you still have issues.
     - Auto-Timestamp chooser basically doesn't work with brand-new databases, since the Markets are not populated yet so there are no dates to check.
@@ -164,7 +176,7 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 
 ## Planned Updates:
 - Soon:
-    - Allow lowercase ICAOs in fields for mission generator - check other fields for functionality.
+	- Drop-down in Descent Calculator which includes Arrival and Departures. Maintain existing text, though.
 
 - Not as soon:
     - Randomize mission generation further.
@@ -175,6 +187,24 @@ Please use the GitHub "Issues" feature to raise any bugs or problems you've come
 Please use the GitHub "Issues" feature to request any new features or improvements. Feedback is welcomed!
 
 ## Change Log:
+
+### v0.8.0
+- Fixed bug with Disconnect button calling backup.
+- Addressed situation where if CurrentPilot.PilotID from database was invalid, most tools wouldn't work properly.
+- Added handling of lowercase ICAOs to most places. DID NOT FULLY TEST.
+- Removed default ICAO for some fields. Made some fields insert an ICAO based on actions from other parts of the tool.
+- Fixed bug in with View Finances button.
+- *Auto-Manage Options* is now the default in the Goods Optimizer when the program loads.
+- Changed default *Delay in Auto Entry* to 500ms (from 1500ms)
+- Added a couple drop-downs to filter the Auto-Market list. Helps you kind of choose which mission(s) you want to end up flying by picking the markets you populate.
+- Capped the pilot movement cost in the *Aircraft Market* tab to 5000 (NeoFly update 2.18).
+- Added a basic "final approach" info bit to the *Flight Tools* and moved things around.
+- Fixed bug with Mission Generator incorrectly saying it can't find information on ICAOs.
+- Added Dispatch tool in *Company Manager*
+- Removed *Debug* tab (that wasn't supposed to stay there...)
+- Fixed some GUI positioning stuff.
+- Fixed a couple bugs with the Dispatch tool.
+- Added configurable income to the Dispatch tool, altered rates a little.
 
 ### v0.7.0
 - Added a Flight Tools tab for common flight calculations.
