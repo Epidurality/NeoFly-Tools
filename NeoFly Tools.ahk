@@ -403,13 +403,19 @@ If no ICAOs are showing, try Searching or Resetting your Missions at the Center 
 	Gui, Add, Edit, x+5 w30 vCompany_CrewDuration, 1
 	Gui, Add, Text, x+2, day(s)
 	Gui, Add, ListView, x+10 w400 h100 vCompany_CrewLV gCompany_CrewLVClick Grid -Multi
+	Gui, Add, Text, x+20 h100, Double-click a row to hire the pilot.
 	
 	Gui, Add, GroupBox, xs y+20 w915 h225 Section, Dispatch
 	Gui, Add, ListView, xs+10 ys+20 w400 h150 vCompany_DispatchCrewLV Grid -Multi
 	Gui, Add, ListView, x+20 w400 h150 vCompany_DispatchPlanesLV Grid -Multi
 	Gui, Add, Text, x+10, Duration (hrs):
-	Gui, Add, Edit, y+10 w50 vCompany_DispatchDuration, 12
-	Gui, Add, Button, xs+10 y+120 gCompany_Dispatch, Dispatch the Crew/Plane
+	Gui, Add, Edit, y+5 w50 vCompany_DispatchDuration, 12
+	Gui, Add, Text, y+10, $/nm:
+	Gui, Add, Edit, y+5 w50 vCompany_DispatchRangeRate, 50
+	Gui, Add, Text, y+10, $/1000lb/nm:
+	Gui, Add, Edit, y+5 w50 vCompany_DispatchPayloadRate, 50
+	
+	Gui, Add, Button, xs+10 y+25 gCompany_Dispatch, Dispatch the Crew/Plane
 	Gui, Add, Button, x+200 gCompany_DispatchRefresh, Refresh
 }
 
@@ -703,6 +709,7 @@ Settings_TimestampAuto:
 	Gui, Main:Default
 	SB_SetText("Attempting timestamp conversion...")
 	; Check the Missions timestamps
+	checkLimit := 99999
 	Loop, Parse, dateFormats, | 
 	{
 		GuiControl, Choose, Settings_MissionDateFormat, %A_Index%
@@ -715,7 +722,7 @@ Settings_TimestampAuto:
 					expiration AS [DB Value], %qExpiration% AS Formatted, 
 					IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
 					IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-				FROM missions ORDER BY id DESC LIMIT 300 )
+				FROM missions ORDER BY id DESC LIMIT %checkLimit% )
 			ORDER BY Validation DESC LIMIT 1
 		)
 		If !(MissionTimeCheckResult := SQLiteGetTable(DB, MissionTimeCheckQuery)) {
@@ -739,7 +746,7 @@ Settings_TimestampAuto:
 					refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
 					IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
 					IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-				FROM goodsMarket ORDER BY id DESC LIMIT 300 )
+				FROM goodsMarket ORDER BY id DESC LIMIT %checkLimit% )
 			ORDER BY Validation DESC LIMIT 1
 		)
 		If !(GoodsTimeCheckResult := SQLiteGetTable(DB, GoodsTimeCheckQuery)) {
@@ -769,6 +776,7 @@ Settings_TimestampPreview:
 {
 	Gui, Main:Default
 	SB_SetText("Previewing timestamp conversions...")
+	checkLimit := 300
 	GuiControlGet, Settings_MissionDateFormat
 	GuiControlGet, Settings_GoodsDateFormat
 	; Show the user the complete output
@@ -782,14 +790,14 @@ Settings_TimestampPreview:
 				refreshDate AS [DB Value], %qRefreshDate% AS Formatted, 
 				IFNULL(DATETIME(%qRefreshDate%), 'INVALID') AS Validation,
 				IFNULL(JULIANDAY(%qRefreshDate%)-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-			FROM goodsMarket ORDER BY id DESC LIMIT 300 )
+			FROM goodsMarket ORDER BY id DESC LIMIT %checkLimit% )
 		UNION ALL SELECT * FROM (
 			SELECT DISTINCT 
 				'Missions.Expiration' AS [DB Field], 
 				expiration AS [DB Value], %qExpiration% AS Formatted, 
 				IFNULL(DATETIME(%qExpiration%), 'INVALID') AS Validation,
 				IFNULL(JULIANDAY(%qExpiration%, 'localtime')-JULIANDAY('now','localtime'), 'INVALID') AS [Then-Now(Days)]
-			FROM missions ORDER BY id DESC LIMIT 300 )
+			FROM missions ORDER BY id DESC LIMIT %checkLimit% )
 		ORDER BY Validation DESC
 	)
 	If !(TimestampsPreviewResult := SQLiteGetTable(DB, TimestampsPreviewQuery)) {
@@ -1894,10 +1902,9 @@ Auto_List:
 	qRefreshDate := SQLiteGenerateDateConversion(Settings_GoodsDateFormat, "gm.refreshDate")
 	AutoListQuery = 
 	(
-		SELECT DISTINCT 
+		SELECT DISTINCT
 			m.arrival AS ICAO, 
 			m.dist AS Distance,
-			m.missionTypeS AS [Type],
 			m.missionHeading AS [Hdg from %Auto_CenterICAO%]			
 		FROM
 			missions AS m
@@ -3037,6 +3044,8 @@ Company_Dispatch:
 	SB_SetText("Dispatching crew...")
 	Gui, Main:Default
 	GuiControlGet, Company_DispatchDuration
+	GuiControlGet, Company_DispatchPayloadRate
+	GuiControlGet, Company_DispatchRangeRate
 	Gui, ListView, Company_DispatchCrewLV
 	SelectedCrewRow := LV_GetNext()
 	If !(SelectedCrewRow) {
@@ -3107,8 +3116,8 @@ Company_Dispatch:
 	lonDep := DepICAORow[1]
 	icaoDep := DepICAORow[3]
 	; Calculate distances and payment
-	incomePerMile := 100
-	incomePerPayloadPerMile := 0.20
+	incomePerMile := Company_DispatchRangeRate
+	incomePerPayloadPerMile := Company_DispatchPayloadRate/1000.0
 	estimatedDistance := ROUND(DistanceFromCoord(lonDep, latDep, lonDest, latDest))
 	estimatedPay := ROUND(PlaneSpeed*Company_DispatchDuration*(incomePerMile + incomePerPayloadPerMile*PlanePayload),0)
 	qMissionSpeed := ROUND(estimatedDistance/Company_DispatchDuration,2)
