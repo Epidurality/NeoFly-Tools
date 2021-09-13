@@ -930,7 +930,7 @@ Goods_HangarLVClick:
 				If (lvQualification != "A") {
 					GuiControl, , Goods_ArrivalHard, 1
 				}
-				If (lvQualifiction != "A" && lvQualifiction != "B") {
+				If (lvQualification != "A" && lvQualification != "B") {
 					GuiControl, , Goods_ArrivalVASI, 1
 				}
 			} else { ; Assume AI is flying
