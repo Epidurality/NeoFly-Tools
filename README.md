@@ -1,3 +1,6 @@
+# DEPRICATED
+NeoFly Tools does not work with the latest version(s) of NeoFly, but I believe should still work with most version of NF3. This project is not being updated. If I get back into NeoFly I may make a new tool instead.
+
 # NeoFly Tools
 Small collection of tools for use with the NeoFly career mod addon for MSFS 2020 (https://www.neofly.net/).
 
